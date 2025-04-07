@@ -1,0 +1,33 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@solana/web3.js": "^1.98.0",
+    "axios": "^1.8.3",
+    "bcryptjs": "^3.0.2",
+    "body-parser": "^1.20.3",
+    "bowser": "^2.11.0",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.4.7",
+    "eccrypto": "^1.1.6",
+    "express": "^4.21.2",
+    "fs": "^0.0.1-security",
+    "ioredis": "^5.6.0",
+    "json2csv": "^6.0.0-alpha.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.6",
+    "stellar-sdk": "^9.1.0",
+    "uuid": "^11.1.0",
+    "xrpl": "^4.2.0"
+  }
+}
