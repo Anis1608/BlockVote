@@ -5,8 +5,8 @@ import { isadmin } from "../middleware/checkisadmin.js";
 const candidateRoutes = express.Router()
 
 candidateRoutes.route("/register-candidate").post(isadmin  ,RegisterCandidate )
-candidateRoutes.route("/all-candidate").get(getAllCandidates)
-candidateRoutes.route("/city-candidate").get(SameCityCandidate)
-candidateRoutes.route("/total-candidate").get(totalnoCandidate)
+candidateRoutes.route("/all-candidate").get(isadmin , getAllCandidates)
+candidateRoutes.route("/city-candidate").get(isadmin , SameCityCandidate)
+candidateRoutes.route("/total-candidate").get(isadmin ,totalnoCandidate)
 
 export default candidateRoutes;

@@ -131,7 +131,14 @@ export default {
 				'fade-in': 'fade-in 0.3s ease-out',
 				'scale-in': 'scale-in 0.2s ease-out',
 				'slide-in': 'slide-in 0.3s ease-out'
-			}
+			},
+			// screens: {
+			// 	'xs': '475px',
+			// 	'sm': '640px',
+			// 	'md': '768px',
+			// 	'lg': '1024px',
+			// 	'xl': '1280px',
+			//   },
 		}
 	},
 	plugins: [require("tailwindcss-animate")],

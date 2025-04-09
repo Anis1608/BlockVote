@@ -5,6 +5,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import castVoteRoutes from "./routes/castVoteRoutes.js";
 import resultRoutes from "./routes/resultroutes.js";
 import cors from "cors"
+import bulkVoterRegisterRoutes from "./routes/fileuploadRoutes/bulkVoterRegisterRoutes.js";
 const app = express();
 app.use(cors());
 app.use(express.json())
@@ -14,6 +15,8 @@ app.use("/api" , candidateRoutes)
 app.use("/api" , adminRoutes)
 app.use("/api" , castVoteRoutes)
 app.use("/api" , resultRoutes)
+app.use("/api" , bulkVoterRegisterRoutes)
+
 
 app.listen(5000, () =>{
 //   database();

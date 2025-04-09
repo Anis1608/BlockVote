@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,57 +20,103 @@ const AdminRegister = () => {
   const [idNo, setIdNo] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const uploadToCloudinary = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "blockvote"); // replace
+
+    try {
+      const res = await fetch("https://api.cloudinary.com/v1_1/yg123/image/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.secure_url) return data.secure_url;
+      return null;
+    } catch (err) {
+      return null;
+    }
+  };
+
+  const handleInitialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast({
-        title: "Passwords do not match",
-        description: "Please make sure both passwords are the same.",
-        variant: "destructive",
-      });
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+
+    if (!profilePhotoUrl) {
+      toast({ title: "No Photo Uploaded", variant: "destructive" });
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/admin-register", {
+      const res = await fetch("http://localhost:5000/api/admin-register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
           email,
           id_no: idNo,
           password,
+          profile: profilePhotoUrl,
         }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
 
       toast({
-        title: "Registration Successful",
-        description: data.message || "Admin account created.",
+        title: "OTP Sent",
+        description: data.message || "Check your email for the OTP.",
       });
 
-      navigate("/login");
-    } catch (error: any) {
+      setShowOtpInput(true);
+    } catch (err: any) {
       toast({
-        title: "Registration Failed",
-        description: error.message || "Something went wrong.",
+        title: "Error",
+        description: err.message || "Something went wrong.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otp) {
+      toast({ title: "OTP Missing", description: "Please enter the OTP.", variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("http://localhost:5000/api/verify-register-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+
+      toast({ title: "Registration Successful", description: data.message });
+      navigate("/login");
+    } catch (error: any) {
+      toast({ title: "Verification Failed", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -95,81 +140,95 @@ const AdminRegister = () => {
 
         <Card className="animate-scale-in">
           <CardHeader>
-            <CardTitle>Create Admin Account</CardTitle>
+            <CardTitle>{showOtpInput ? "Verify OTP" : "Create Admin Account"}</CardTitle>
             <CardDescription>
-              Register as an election administrator
+              {showOtpInput
+                ? "Enter the OTP sent to your email."
+                : "Register as an election administrator"}
             </CardDescription>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
+
+          {!showOtpInput ? (
+            <form onSubmit={handleInitialSubmit}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input id="name" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="admin@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="idNo">ID Number</Label>
+                  <Input id="idNo" placeholder="Enter your ID number" value={idNo} onChange={(e) => setIdNo(e.target.value)} required />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="profilePhoto">Profile Photo</Label>
+                  <Input
+                    id="profilePhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setFileName(file.name);
+                        setIsLoading(true);
+                        const uploadedUrl = await uploadToCloudinary(file);
+                        if (uploadedUrl) {
+                          setProfilePhotoUrl(uploadedUrl);
+                          toast({ title: "Upload Successful", description: "Profile photo uploaded to Cloudinary." });
+                        } else {
+                          toast({ title: "Upload Failed", description: "Could not upload image.", variant: "destructive" });
+                        }
+                        setIsLoading(false);
+                      }
+                    }}
+                    required
+                  />
+                  {fileName && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Selected File: <span className="font-medium">{fileName}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                </div>
+              </CardContent>
+
+              <CardFooter className="flex flex-col space-y-4">
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Sending OTP..." : "Create account"}
+                </Button>
+                <p className="text-center text-sm text-muted-foreground">
+                  Already have an account? <a href="/login" className="text-secondary hover:underline">Sign in</a>
+                </p>
+              </CardFooter>
+            </form>
+          ) : (
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+                <Label htmlFor="otp">Enter OTP</Label>
+                <Input id="otp" placeholder="123456" value={otp} onChange={(e) => setOtp(e.target.value)} required />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="idNo">ID Number</Label>
-                <Input
-                  id="idNo"
-                  placeholder="Enter your ID number"
-                  value={idNo}
-                  onChange={(e) => setIdNo(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              </div>
+              <CardFooter>
+                <Button className="w-full" onClick={handleVerifyOTP} disabled={isLoading}>
+                  {isLoading ? "Verifying..." : "Verify & Complete Registration"}
+                </Button>
+              </CardFooter>
             </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Create account"}
-              </Button>
-              <p className="text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <a href="/login" className="text-secondary hover:underline">
-                  Sign in
-                </a>
-              </p>
-            </CardFooter>
-          </form>
+          )}
         </Card>
       </div>
     </div>

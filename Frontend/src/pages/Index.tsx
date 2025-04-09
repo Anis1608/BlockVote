@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -7,8 +6,9 @@ import { CheckCircle, Lock, Shield, TrendingUp } from "lucide-react";
 const Home = () => {
   return (
     <div className="min-h-screen bg-background">
+      {/* Header with mobile-specific changes */}
       <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-4">
             <span className="font-bold text-xl flex items-center">
               <span className="text-primary">Block</span>
@@ -16,16 +16,26 @@ const Home = () => {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <Button asChild variant="outline">
-              <a href="/voter/login">Voter Access</a>
-            </Button>
-            <Button asChild>
-              <a href="/login">Admin Login</a>
-            </Button>
+            <div className="hidden sm:flex items-center gap-4">
+              <ThemeToggle />
+              <Button asChild variant="outline">
+                <a href="/voter/login">Voter Access</a>
+              </Button>
+              <Button asChild>
+                <a href="/login">Admin Login</a>
+              </Button>
+            </div>
+            <div className="flex sm:hidden items-center gap-2">
+              <Button asChild size="sm" className="px-2">
+                <a href="/login">Admin</a>
+              </Button>
+              <ThemeToggle className="h-9 w-9" />
+            </div>
           </div>
         </div>
       </header>
+
+      {/* Hero Section - unchanged from original */}
       <section className="py-20 px-4 md:px-6">
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -41,7 +51,7 @@ const Home = () => {
                   <a href="/voter/login">Vote Now</a>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <a href="/results">View Results</a>
+                  <a href="/public/result">View Results</a>
                 </Button>
               </div>
             </div>
@@ -56,6 +66,7 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Features Section - unchanged from original */}
       <section className="py-16 bg-muted">
         <div className="container">
           <div className="text-center mb-12">
@@ -105,6 +116,7 @@ const Home = () => {
         </div>
       </section>
 
+      {/* CTA Section - unchanged from original */}
       <section className="py-16">
         <div className="container">
           <div className="text-center">
@@ -124,6 +136,7 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Footer - unchanged from original */}
       <footer className="border-t py-12 bg-background">
         <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">
           <div className="flex flex-col items-center gap-4 md:items-start">

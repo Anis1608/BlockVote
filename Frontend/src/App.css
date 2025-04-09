@@ -40,3 +40,62 @@
 .read-the-docs {
   color: #888;
 }
+
+
+/* For tables on mobile */
+@media (max-width: 640px) {
+  .responsive-table {
+    width: 100%;
+    overflow-x: auto;
+    display: block;
+  }
+  
+  .table-cell {
+    min-width: 120px;
+    padding: 8px 4px;
+  }
+}
+
+
+/* Add to your global CSS file */
+@media (max-width: 640px) {
+  .sidebar-content {
+    background-color: var(--sidebar-background);
+    color: var(--sidebar-foreground);
+  }
+}
+
+/* Add this to your global CSS file */
+[data-radix-scroll-area-viewport] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: none;
+}
+
+[data-state="open"] .bg-black\/50 {
+  opacity: 1 !important;
+}
+
+
+/* Add to your global CSS */
+[data-radix-scroll-area-viewport] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: none;
+}
+
+.bg-background {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* Force sidebar background */
+[data-state="open"] .bg-background {
+  background-color: hsl(var(--background)) !important;
+}

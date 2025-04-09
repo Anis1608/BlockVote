@@ -32,7 +32,8 @@ import BaseLayout from "./components/layouts/BaseLayout";
 // Other Pages
 import NotFound from "./pages/NotFound";
 import Home from "./pages/Index";
-
+// import DesktopModeOnly from "./restrict/DesktopModeOnly";
+import PublicResultPage from "./pages/results/PublicResultPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -43,36 +44,52 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            
-            {/* Auth Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin/register" element={<AdminRegister />} />
-            
-            {/* Voter Routes */}
-            <Route path="/voter/login" element={<VoterLogin />} />
-            <Route element={<VoterLayout />}>
-              <Route path="/voter/ballot" element={<VotingBallot />} />
-              <Route path="/voter/confirm" element={<VoteConfirmation />} />
-              <Route path="/voter/success" element={<VoteSuccess />} />
-            </Route>
-            
-            {/* Admin Routes */}
-            <Route element={<AdminLayout />}>
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/voters" element={<VoterManagement />} />
-              <Route path="/admin/candidates" element={<CandidateManagement />} />
-              <Route path="/admin/settings" element={<ElectionSettings />} />
-            </Route>
-            
-            {/* Results Routes */}
+            {/* Public Route (Accessible on all devices) */}
             <Route element={<BaseLayout />}>
-              <Route path="/results" element={<Results />} />
+              <Route path="/public/result" element={<PublicResultPage />} />
             </Route>
-            
-            {/* Catch-all Route */}
-            <Route path="*" element={<NotFound />} />
+
+            {/* All other routes wrapped with DesktopModeOnly */}
+            <Route
+              path="*"
+              element={
+                // <DesktopModeOnly>
+                  <Routes>
+                    {/* Public Route */}
+                    <Route path="/" element={<Home />} />
+
+                    {/* Auth Routes */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/admin/register" element={<AdminRegister />} />
+
+                    {/* Voter Routes */}
+                    <Route path="/voter/login" element={<VoterLogin />} />
+                    <Route element={<VoterLayout />}>
+                      <Route path="/voter/ballot" element={<VotingBallot />} />
+                      <Route path="/voter/confirm" element={<VoteConfirmation />} />
+                      <Route path="/voter/success" element={<VoteSuccess />} />
+                    </Route>
+
+                    {/* Admin Routes */}
+                    <Route element={<AdminLayout />}>
+                      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                      <Route path="/admin/voters" element={<VoterManagement />} />
+                      <Route path="/admin/candidates" element={<CandidateManagement />} />
+                      <Route path="/admin/settings" element={<ElectionSettings />} />
+                      <Route path="/results" element={<Results />} />
+                    </Route>
+
+                    {/* Results Page */}
+                    <Route element={<BaseLayout />}>
+                     
+                    </Route>
+
+                    {/* Catch-all */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                // </DesktopModeOnly>
+              }
+            />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

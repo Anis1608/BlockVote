@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 const CandidateManagement = () => {
   const [candidates, setCandidates] = useState([]);
@@ -26,35 +27,39 @@ const CandidateManagement = () => {
     party: "",
   });
 
- const navigate = useNavigate();
-
-
+  const navigate = useNavigate();
+  const token = localStorage.getItem("adminToken");
+  const { toast } = useToast();
 
   const fetchCandidates = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/all-candidate");
-      setCandidates(res.data.getDetails || []);
+      const res = await axios.get("http://localhost:5000/api/all-candidate", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "device-id": localStorage.getItem("deviceId"),
+        },
+      });
+
+      setCandidates(res.data.candidates || []);
     } catch (error) {
       console.error("Error fetching candidates", error);
     }
   };
-  
+
   useEffect(() => {
     const adminToken = localStorage.getItem("adminToken");
-
     if (!adminToken) {
       navigate("/login");
-      return;
-    }})
+    }
+  }, [navigate]);
 
-  useEffect(() => {  
-      fetchCandidates();
+  useEffect(() => {
+    fetchCandidates();
   }, []);
 
+  
   const handleAddCandidate = async () => {
     try {
-      const token = localStorage.getItem("adminToken"); // Get token from localStorage
-
       const payload = {
         candidateId: form.candidateId,
         name: form.name,
@@ -74,13 +79,18 @@ const CandidateManagement = () => {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "device-id": localStorage.getItem("deviceId")
+            "device-id": localStorage.getItem("deviceId"),
           },
-        } 
+        }
       );
 
       if (res.data.success) {
-        alert("Candidate registered successfully");
+        toast({
+          title: "Success!",
+          description: "Candidate has been added successfully.",
+          variant: "default",
+          duration: 3000,
+        });
         fetchCandidates();
         setOpen(false);
         setForm({
@@ -94,27 +104,38 @@ const CandidateManagement = () => {
           party: "",
         });
       } else {
-        alert(res.data.message || "Failed to register");
+        toast({
+          title: "Error",
+          description: res.data.message || "Failed to register candidate",
+          variant: "destructive",
+          duration: 3000,
+        });
       }
     } catch (error) {
       console.error("Error registering candidate", error);
-      alert("Error registering candidate");
+      toast({
+        title: "Error",
+        description: "An error occurred while registering the candidate",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
   };
 
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold">Candidate Management</h2>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+        <h2 className="text-xl sm:text-2xl font-semibold">Candidate Management</h2>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>Add New Candidate</Button>
+            <Button className="w-full sm:w-auto">Add New Candidate</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="w-[95%] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Candidate</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-1 gap-4 mt-4">
               <div>
                 <Label htmlFor="candidateId">Candidate ID</Label>
                 <Input
@@ -204,13 +225,18 @@ const CandidateManagement = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {candidates.map((candidate, index) => (
           <div key={index} className="border p-4 rounded-lg shadow-md">
             <img
               src={candidate.profilePic}
               alt={candidate.name}
-              className="h-32 w-32 object-cover rounded-full mx-auto mb-2"
+              className="h-24 w-24 sm:h-32 sm:w-32 object-cover rounded-full mx-auto mb-2"
+              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                const target = e.currentTarget;
+                target.onerror = null;
+                target.src = "https://via.placeholder.com/150";
+              }}
             />
             <h3 className="text-lg font-semibold text-center">
               {candidate.name}

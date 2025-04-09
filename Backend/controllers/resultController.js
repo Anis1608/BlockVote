@@ -8,140 +8,107 @@ import fs from 'fs';
 const STELLAR_SERVER = "https://horizon-testnet.stellar.org";
 const server = new StellarSdk.Server(STELLAR_SERVER);
 
-
-
-export const getCandidateVotes = async (req, res) => {
+export const getCandidateVotesbyadmin = async (req, res) => {
     try {
-        const adminWalletAddress = req.admin.walletAddress;
+        const { adminId } = req.query;
 
-        const candidates = await Candidate.find();
-        if (!candidates || candidates.length === 0) {
-            return res.status(404).json({ error: "No Candidates Found!" });
+        if (!adminId) {
+            return res.status(400).json({ error: "adminId is required in query parameters" });
         }
 
-        let votesByCity = {};
-        let votesByState = {};
+        // Fetch candidates registered by this admin
+        const candidates = await Candidate.find({ admin:adminId });
+
+        if (!candidates || candidates.length === 0) {
+            return res.status(404).json({ error: "No Candidates Found for this admin!" });
+        }
+
+        // Fetch admin's wallet address
+        const admin = await AdminData.findById(adminId);
+        if (!admin || !admin.walletAddress) {
+            return res.status(404).json({ error: "Admin wallet not found!" });
+        }
+
+        const transactions = await server.transactions()
+            .forAccount(admin.walletAddress)
+            .call();
+
+        let candidateVotesList = [];
 
         for (let candidate of candidates) {
-            const { candidateId, name, location, party } = candidate;
-
-            const transactions = await server.transactions()
-                .forAccount(adminWalletAddress)
-                .call();
-
-            if (!transactions.records) continue;
+            const { candidateId, name, party, location } = candidate;
 
             let voteCount = 0;
             transactions.records.forEach(tx => {
-                if (tx.memo && tx.memo.includes(`Vote:`) && tx.memo.endsWith(`->${candidateId}`)) {
+                if (tx.memo && tx.memo.includes("Vote:") && tx.memo.endsWith(`->${candidateId}`)) {
                     voteCount++;
                 }
             });
 
-            const { city, state } = location;
-            if (!votesByCity[city]) {
-                votesByCity[city] = [];
-            }
-            votesByCity[city].push({ candidateId, name, party, voteCount });
-
-            if (!votesByState[state]) {
-                votesByState[state] = {};
-            }
-            if (!votesByState[state][party]) {
-                votesByState[state][party] = 0;
-            }
-            votesByState[state][party] += voteCount;
-        }
-
-        // Get the city-wise winners
-        let cityWinners = {};
-        for (let city in votesByCity) {
-            let highestVotes = -1;
-            let winner = {};
-            votesByCity[city].forEach(candidate => {
-                if (candidate.voteCount > highestVotes) {
-                    highestVotes = candidate.voteCount;
-                    winner = candidate;
-                }
+            candidateVotesList.push({
+                candidateId,
+                name,
+                party,
+                location,
+                voteCount
             });
-            cityWinners[city] = {
-                winner: winner.name,
-                party: winner.party,
-                votes: highestVotes
-            };
         }
 
-        // Get the state-wise winners based on vote counts (not city wins)
-        let stateWinners = {};
-        for (let state in votesByState) {
-            let partyVotes = votesByState[state];
-            let winningParty = '';
-            let maxVotes = -1;
-            for (let party in partyVotes) {
-                if (partyVotes[party] > maxVotes) {
-                    maxVotes = partyVotes[party];
-                    winningParty = party;
-                }
-            }
-            stateWinners[state] = {
-                winningParty,
-                votes: maxVotes
-            };
-        }
+        // Sort and extract top 5
+        const top5Candidates = [...candidateVotesList]
+            .sort((a, b) => b.voteCount - a.voteCount)
+            .slice(0, 5);
 
         return res.status(200).json({
-            cityWinners,
-            stateWinners
+            top5Candidates,
+            allCandidates: candidateVotesList
         });
 
     } catch (error) {
-        console.error("Error in getCandidateVotes:", error);
+        console.error("Error :", error);
         return res.status(500).json({ error: "Internal Server Error" });
     }
 };
 
-   
+
 export const totalvotesofallcandidate = async (req, res) => {
     try {
-        const admindata = await AdminData.find();
-        if (!admindata || admindata.length === 0) {
-            return res.status(404).json({ error: "No Candidates Found!" });
+        const adminId = req.admin._id; 
+        const admin = await AdminData.findById(adminId);
+
+        if (!admin || !admin.walletAddress) {
+            return res.status(404).json({ error: "Admin wallet address not found!" });
         }
+
+        const adminAddress = admin.walletAddress;
+
+        if (
+            typeof adminAddress !== 'string' ||
+            !adminAddress.startsWith('G') ||
+            adminAddress.length !== 56
+        ) {
+            return res.status(400).json({ error: "Invalid wallet address!" });
+        }
+
+        try {
+            await server.loadAccount(adminAddress);
+        } catch (err) {
+            return res.status(400).json({ error: "Admin wallet address is inactive or unfunded!" });
+        }
+
+        const transactions = await server.transactions()
+            .forAccount(adminAddress)
+            .call();
 
         let totalVotes = 0;
 
-        for (let candidate of admindata) {
-            const candidateAddress = candidate.walletAddress;
-            if (
-                !candidateAddress ||
-                typeof candidateAddress !== 'string' ||
-                !candidateAddress.startsWith('G') ||
-                candidateAddress.length !== 56
-            ) {
-                // console.warn(`Skipping invalid walletAddress: ${candidateAddress}`);
-                continue;
-            }
-
-            try {
-                await server.loadAccount(candidateAddress);
-            } catch (err) {
-                // console.warn(`Skipping inactive or unfunded address: ${candidateAddress}`);
-                continue;
-            }
-
-            const transactions = await server.transactions()
-                .forAccount(candidateAddress)
-                .call();
-
-            if (!transactions.records) continue;
-
+        if (transactions.records && transactions.records.length > 0) {
             transactions.records.forEach(tx => {
                 if (tx.memo && tx.memo.includes("Vote:")) {
                     totalVotes++;
                 }
             });
         }
-
         return res.status(200).json({
             totalVotes
         });
@@ -151,6 +118,7 @@ export const totalvotesofallcandidate = async (req, res) => {
         return res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
 
 
 export const downloadStellarCSV = async (req, res) => {

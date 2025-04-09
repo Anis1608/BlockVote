@@ -37,18 +37,26 @@ const VotingBallot = () => {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/all-candidate");
+        const response = await fetch("http://localhost:5000/api/all-candidate", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+            "device-id": localStorage.getItem("deviceId"),
+          },
+        });
         const data = await response.json();
         if (data.success) {
-          setCandidates(data.getDetails);
+          setCandidates(data.candidates); // ✅ Corrected
         }
       } catch (error) {
         console.error("Error fetching candidates:", error);
       }
     };
-
+  
     fetchCandidates();
   }, []);
+  
 
   const handleContinue = () => {
     if (selectedCandidate) {

@@ -19,6 +19,10 @@ const Admindb = new mongoose.Schema({
         type:String,
         requird:true,
     },
+    profile:{
+        type:String,
+        default:"https://img.freepik.com/free-icon/user_318-804790.jpg",
+    },
     walletAddress:{
         type:String,
         required:true,

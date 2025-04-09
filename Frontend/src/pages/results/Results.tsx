@@ -129,17 +129,18 @@ export default function Results() {
   };
 
   return (
-    <div className="space-y-6 animate-in">
+    <div className="space-y-6 p-4 md:p-6 animate-in">
+      {/* Header Section */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1">Election Results</h1>
-          <p className="text-muted-foreground">Blockchain Election • Final Results</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1">Election Results</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Blockchain Election • Final Results</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={shareResults}>
+          <Button variant="outline" size="sm" onClick={shareResults} className="flex-1 sm:flex-none">
             Share
           </Button>
-          <Button variant="outline" size="sm" onClick={exportResults}>
+          <Button variant="outline" size="sm" onClick={exportResults} className="flex-1 sm:flex-none">
             Export
           </Button>
         </div>
@@ -166,7 +167,7 @@ export default function Results() {
       {/* City Wise Breakdown */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <CardTitle>City-wise Winners</CardTitle>
               <CardDescription>Breakdown of winners by city</CardDescription>
@@ -174,14 +175,14 @@ export default function Results() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
+          <div className="space-y-4">
             {Object.entries(cityWinners).map(([city, data]) => (
-              <div key={city} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">{city}</h3>
-                  <p className="text-sm text-muted-foreground">{data.votes} votes</p>
+              <div key={city} className="space-y-1 p-3 border rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                  <h3 className="font-semibold text-sm sm:text-base">{city}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{data.votes} votes</p>
                 </div>
-                <div className="text-sm">
+                <div className="text-xs sm:text-sm">
                   Winner: <span className="font-medium">{data.winner}</span> ({data.party})
                 </div>
               </div>
@@ -205,11 +206,11 @@ export default function Results() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-md bg-muted p-4">
-            <h4 className="font-medium mb-2">Election Smart Contract Address</h4>
+          <div className="rounded-md bg-muted p-3 sm:p-4">
+            <h4 className="font-medium text-sm sm:text-base mb-2">Election Smart Contract Address</h4>
             <p className="font-mono text-xs break-all">{walletAddress}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Link
               className="flex-1"
               to={`https://stellar.expert/explorer/testnet/search?term=${walletAddress}`}
@@ -217,12 +218,12 @@ export default function Results() {
             >
               <Button className="w-full">
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Verify on Blockchain Explorer
+                <span className="truncate">Verify on Blockchain Explorer</span>
               </Button>
             </Link>
             <Button onClick={handleDownloadCSV} className="flex-1">
               <Download className="mr-2 h-4 w-4" />
-              Download Verification Report
+              <span className="truncate">Download Verification Report</span>
             </Button>
           </div>
         </CardContent>
