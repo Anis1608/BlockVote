@@ -17,7 +17,7 @@ const CandidateManagement = () => {
   const [candidates, setCandidates] = useState([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    candidateId: "",
+    candidateId: "", // We'll auto-generate this
     name: "",
     profilePic: "",
     age: "",
@@ -26,10 +26,27 @@ const CandidateManagement = () => {
     locationState: "",
     party: "",
   });
+  const [isUploading, setIsUploading] = useState(false);
+  const [fileName, setFileName] = useState("");
 
   const navigate = useNavigate();
   const token = localStorage.getItem("adminToken");
   const { toast } = useToast();
+
+  const generateCandidateId = (): string => {
+    const randomNum = Math.floor(Math.random() * 1000000).toString().padStart(4, '0');
+    return `CAND${randomNum}`;
+  };
+
+  // Generate ID when dialog opens
+  useEffect(() => {
+    if (open) {
+      setForm(prev => ({
+        ...prev,
+        candidateId: generateCandidateId()
+      }));
+    }
+  }, [open]);
 
   const fetchCandidates = async () => {
     try {
@@ -57,11 +74,70 @@ const CandidateManagement = () => {
     fetchCandidates();
   }, []);
 
-  
+  const uploadToCloudinary = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "blockvote");
+
+    try {
+      const res = await fetch(
+        "https://api.cloudinary.com/v1_1/yg123/image/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await res.json();
+      if (data.secure_url) return data.secure_url;
+      return null;
+    } catch (err) {
+      console.error("Error uploading to Cloudinary:", err);
+      return null;
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileName(file.name);
+    setIsUploading(true);
+
+    try {
+      const uploadedUrl = await uploadToCloudinary(file);
+      if (uploadedUrl) {
+        setForm({ ...form, profilePic: uploadedUrl });
+        toast({
+          title: "Success",
+          description: "Image uploaded successfully",
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to upload image",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while uploading the image",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleAddCandidate = async () => {
     try {
       const payload = {
-        candidateId: form.candidateId,
+        candidateId: form.candidateId, // Using our auto-generated ID
         name: form.name,
         profilePic: form.profilePic,
         age: Number(form.age),
@@ -84,6 +160,16 @@ const CandidateManagement = () => {
         }
       );
 
+      if (res.data.message === "Candidate Registration Phase is Closed...") {
+        toast({
+          title: "Error",
+          description: "Candidate Registration Phase is Closed.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        return;
+      }
+
       if (res.data.success) {
         toast({
           title: "Success!",
@@ -94,7 +180,7 @@ const CandidateManagement = () => {
         fetchCandidates();
         setOpen(false);
         setForm({
-          candidateId: "",
+          candidateId: generateCandidateId(), // Generate new ID for next candidate
           name: "",
           profilePic: "",
           age: "",
@@ -103,6 +189,7 @@ const CandidateManagement = () => {
           locationState: "",
           party: "",
         });
+        setFileName("");
       } else {
         toast({
           title: "Error",
@@ -122,7 +209,6 @@ const CandidateManagement = () => {
     }
   };
 
-
   return (
     <div className="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
@@ -136,16 +222,6 @@ const CandidateManagement = () => {
               <DialogTitle>Add Candidate</DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-1 gap-4 mt-4">
-              <div>
-                <Label htmlFor="candidateId">Candidate ID</Label>
-                <Input
-                  id="candidateId"
-                  value={form.candidateId}
-                  onChange={(e) =>
-                    setForm({ ...form, candidateId: e.target.value })
-                  }
-                />
-              </div>
               <div>
                 <Label htmlFor="name">Name</Label>
                 <Input
@@ -188,14 +264,23 @@ const CandidateManagement = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="profilePic">Profile Picture URL</Label>
+                <Label htmlFor="profilePic">Profile Photo</Label>
                 <Input
                   id="profilePic"
-                  value={form.profilePic}
-                  onChange={(e) =>
-                    setForm({ ...form, profilePic: e.target.value })
-                  }
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isUploading}
                 />
+                {fileName && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Selected: {fileName}
+                    {isUploading && " (Uploading...)"}
+                  </p>
+                )}
+                {form.profilePic && !isUploading && (
+                  <p className="text-sm text-green-600 mt-1">Photo uploaded successfully</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="locationCity">City</Label>
@@ -241,6 +326,7 @@ const CandidateManagement = () => {
             <h3 className="text-lg font-semibold text-center">
               {candidate.name}
             </h3>
+            <p className="text-sm text-center text-muted-foreground">ID: {candidate.candidateId}</p>
             <p className="text-sm text-center">Party: {candidate.party}</p>
             <p className="text-sm text-center">Age: {candidate.age}</p>
             <p className="text-sm text-center">City: {candidate.location.city}</p>

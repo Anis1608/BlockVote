@@ -35,8 +35,8 @@ const Admindb = new mongoose.Schema({
     },
     currentPhase:{
         type:String,
-        emun:["Registration","Voting","Result"],
-        default:"Registration"
+        emun:["Registration","Voting","Result" ,"Selection Pending"],
+        default:"Selection Pending"
     }
 
 })

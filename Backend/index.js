@@ -4,8 +4,12 @@ import candidateRoutes from "./routes/candidaterRoutes.js"
 import adminRoutes from "./routes/adminRoutes.js";
 import castVoteRoutes from "./routes/castVoteRoutes.js";
 import resultRoutes from "./routes/resultroutes.js";
-import cors from "cors"
 import bulkVoterRegisterRoutes from "./routes/fileuploadRoutes/bulkVoterRegisterRoutes.js";
+import electionPhaseRoutes from "./routes/electionPhaseRoutes.js";
+import logoutRoutes from "./routes/logoutRoutes.js";
+import forgotpasswordAdminRoutes from "./routes/forgotpasswordAdminRoutes.js";
+import cors from "cors"
+import activityLogRoutes from "./routes/activityLogRoutes.js";
 const app = express();
 app.use(cors());
 app.use(express.json())
@@ -16,6 +20,10 @@ app.use("/api" , adminRoutes)
 app.use("/api" , castVoteRoutes)
 app.use("/api" , resultRoutes)
 app.use("/api" , bulkVoterRegisterRoutes)
+app.use("/api" , electionPhaseRoutes)
+app.use("/api" , logoutRoutes)
+app.use("/api" , forgotpasswordAdminRoutes)
+app.use("/api" , activityLogRoutes)
 
 
 app.listen(5000, () =>{

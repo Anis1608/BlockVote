@@ -12,7 +12,10 @@ import {
   storeOTP,
   verifyOTP,
   sendOTPByEmail,
+  sendVoterIdonEmail,
 } from "../Utils/otp.js";
+import { logActivity } from "../middleware/activityLogger.js";
+
 
 const SECRET_KEY = "anis";
 
@@ -32,7 +35,7 @@ export const Register = async (req, res) => {
 
   const otp = generateOTP();
   await storeOTP(`register:${email}`, otp);
-  await sendOTPByEmail(email, otp);
+  await sendOTPByEmail(email, otp , "registration");
 
   const tempData = { name, id_no, email, password , profile };
   await redis.set(`temp:register:${email}`, JSON.stringify(tempData), "EX", 600); // 10 min
@@ -189,27 +192,27 @@ export const getDetails = async (req, res) => {
   }
 };
 
-export const logout = async (req, res) => {
-  try {
-    const adminId = req.admin._id.toString();
-    const deviceId = req.headers["device-id"];
-    if (!deviceId) return res.status(400).json({ message: "Device ID missing", Success: false });
+// export const logout = async (req, res) => {
+//   try {
+//     const adminId = req.admin._id.toString();
+//     const deviceId = req.headers["device-id"];
+//     if (!deviceId) return res.status(400).json({ message: "Device ID missing", Success: false });
 
-    const redisKey = `session:${adminId}:${deviceId}`;
-    const deviceInfoKey = `device-info:${adminId}:${deviceId}`;
-    const deleted = await redis.del(redisKey);
-    await redis.del(deviceInfoKey);
+//     const redisKey = `session:${adminId}:${deviceId}`;
+//     const deviceInfoKey = `device-info:${adminId}:${deviceId}`;
+//     const deleted = await redis.del(redisKey);
+//     await redis.del(deviceInfoKey);
 
-    if (deleted === 0) {
-      return res.status(404).json({ message: "Session not found", Success: false });
-    }
+//     if (deleted === 0) {
+//       return res.status(404).json({ message: "Session not found", Success: false });
+//     }
 
-    return res.status(200).json({ message: "Logout successful", Success: true });
-  } catch (error) {
-    console.error("Logout error:", error);
-    res.status(500).json({ message: "Logout failed", Success: false });
-  }
-};
+//     return res.status(200).json({ message: "Logout successful", Success: true });
+//   } catch (error) {
+//     console.error("Logout error:", error);
+//     res.status(500).json({ message: "Logout failed", Success: false });
+//   }
+// };
 
 export const getAllLoggedInDevices = async (req, res) => {
   try {
@@ -241,13 +244,63 @@ export const getAllLoggedInDevices = async (req, res) => {
 //  VOTERS 
 
 export const Register_Voter = async (req, res) => {
-  const { voterId, name, dob, location } = req.body;
+  const { voterId, name, dob, location , email} = req.body;
   const adminId = req.admin._id;
+  const currentPhase = req.admin.currentPhase;
 
-  if (!voterId || !name || !dob || !location) {
-    return res.status(400).json({ message: "Something is Missing...", Success: false });
+  const alreadyRegister = await VoterData.findOne({email , admin: adminId});
+  if (alreadyRegister) {
+    return res.status(400).json({ message: "Email Already Registered...", Success: false });
   }
+  if (currentPhase !== "Registration") {
+    return res.status(400).json({ 
+      message: "Voter Registration Phase is Closed...", 
+      Success: false 
+    });
+  }
+  
+  // 2. Check for missing fields
+  if (!voterId || !name || !dob || !location || !email) {
+    return res.status(400).json({ 
+      message: "Something is Missing...", 
+      Success: false 
+    });
+  }
+  const voterDob = new Date(dob);
+  const currentDate = new Date();
 
+  if (isNaN(voterDob.getTime())) {
+    return res.status(400).json({ 
+      message: "Invalid Date of Birth...", 
+      Success: false 
+    });
+  }
+  if (voterDob > currentDate) {
+    return res.status(400).json({ 
+      message: "Date of Birth cannot be in the future...", 
+      Success: false 
+    });
+  }
+  let age = currentDate.getFullYear() - voterDob.getFullYear();
+  const monthDiff = currentDate.getMonth() - voterDob.getMonth();
+  const dayDiff = currentDate.getDate() - voterDob.getDate();
+  // Adjust age if birthday hasn't occurred yet this year
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age--;
+  }
+  
+  if (age < 18) {
+    return res.status(400).json({ 
+      message: "Voter Must be at least 18 Years Old...", 
+      Success: false 
+    });
+  } 
+  if (age > 120) {
+    return res.status(400).json({ 
+      message: "Voter Age is Invalid (Maximum 120 years)...", 
+      Success: false 
+    });
+  }
   const checkVoter = await VoterData.findOne({ voterId, admin: adminId });
   if (checkVoter) {
     return res.status(400).json({ message: "Voter Already Registered under this Admin...", Success: false });
@@ -258,9 +311,12 @@ export const Register_Voter = async (req, res) => {
     voterId,
     name,
     dob,
+    email,
     location,
   });
-
+  await logActivity(req, "voter_registration", "success", { name });
+  console.log(voterDetails.voterId)
+  await sendVoterIdonEmail(voterDetails.email, voterDetails.voterId);
   res.status(200).json({ message: "Voter Registered Successfully...", Success: true, voterDetails });
 };
 
@@ -272,7 +328,6 @@ export const getvoterDetails = async (req, res) => {
     if (!getDetails || getDetails.length === 0) {
       return res.status(400).json({ message: "No Voter Found for this Admin...", Success: false });
     }
-
     res.status(200).json({ message: "All Voters for this Admin...", Success: true, getDetails });
   } catch (error) {
     console.log(error);
@@ -306,32 +361,4 @@ export const totalRegisterVoter = async (req, res) => {
       Success: false
     });
   }
-};
-
-
-// ============================== PHASE ==============================
-
-export const getCurrentPhase = async (req, res) => {
-  const adminId = req.admin?.id_no;
-  const admin = await AdminData.findOne({ id_no: adminId });
-  if (!admin) {
-    return res.status(404).json({ message: "Admin not found", Success: false });
-  }
-
-  return res.status(200).json({
-    Success: true,
-    currentPhase: admin.currentPhase,
-  });
-};
-
-export const electionPhase = async (req, res) => {
-  const { currentPhase } = req.body;
-  const adminId = req.admin?.id_no;
-
-  if (!currentPhase) {
-    return res.status(400).json({ message: "Something is Missing...", Success: false });
-  }
-
-  await AdminData.findOneAndUpdate({ id_no: adminId }, { $set: { currentPhase } });
-  res.status(200).json({ message: "Phase Updated Successfully...", Success: true });
 };

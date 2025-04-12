@@ -4,6 +4,7 @@ import AdminData from "../models/Admin.js";
 
 import Voter from "../models/Voter.js";
 import Candidate from "../models/Candidate.js";
+import { logActivity } from "../middleware/activityLogger.js";
 
 const STELLAR_SERVER = "https://horizon-testnet.stellar.org"; // Stellar Testnet link
 // const STELLAR_SECRET = "SB4L3577Z5RYXII6S6C6JRK2MFKNPX2XRYKTKG4HQLWIWZP4W4HOFBBK"; //  Secret Key
@@ -12,12 +13,23 @@ const STELLAR_SERVER = "https://horizon-testnet.stellar.org"; // Stellar Testnet
 export const castVote = async (req, res) => {
     const { voterId, candidateId } = req.body;
     const adminId = req.admin?.id_no;
+    const currentPhase = req.admin?.currentPhase;
+    if (currentPhase === "Registration") {
+        return res.status(400).json({
+            message: "Voting Phase is Not Yet Started...",
+            Success: false,
+        });
+    }
+    if (currentPhase === "Result") {
+        return res.status(400).json({
+            message: "Voting Phase is Closed...",
+            Success: false,
+        });
+    }
     console.log("admin data:" , adminId)
-
     const server = new StellarSdk.Server(STELLAR_SERVER);
     
     try {
-        // Verify Voter & Candidate in Database
         const voter = await Voter.findOne({ voterId });
         // console.log(voter)
         const candidate = await Candidate.findOne({ candidateId });
@@ -32,7 +44,6 @@ export const castVote = async (req, res) => {
 
         const requestedAdminData = await AdminData.findOne({ id_no: adminId });
         // console.log("REquested Adimn data Fetched :" , requestedAdminData)
-        //Load Account Info (Get Sequence Number)
         const account = await server.loadAccount(requestedAdminData.walletAddress);
         const sequence = account.sequence;
 
@@ -49,25 +60,22 @@ export const castVote = async (req, res) => {
             asset: StellarSdk.Asset.native(), 
             amount: "0.00001", 
         }))
-        .addMemo(StellarSdk.Memo.text(`Vote:${voterId}->${candidateId}`)) 
+        .addMemo(StellarSdk.Memo.text(`Vote:${candidateId}`)) 
         .setTimeout(30)
         .build();
 
         //Sign Transaction
         const voterKeypair = StellarSdk.Keypair.fromSecret(requestedAdminData.walletSecret);
         transaction.sign(voterKeypair);
-
-        //Submit Transaction
         const response = await server.submitTransaction(transaction);
 
-        //Check Response
         if (response.successful) {
             console.log("Vote Successfully Recorded on Stellar!");
-            //Update Voter in Database
             await Voter.findOneAndUpdate(
-                { voterId }, // Find voter by ID
+                { voterId },
                 { $set: { voteCast: true } }, 
             );
+            await logActivity(req, "cast_vote", "success", {transactionHash: response.hash});
             return res.status(200).json({ message: "Vote recorded!", Success:true ,  hash: response.hash });
         } else {
             console.log(`Transaction Failed: ${response.extras?.result_codes?.transaction}`);
@@ -91,9 +99,6 @@ export const voter_login = async (req, res) => {
             return res.status(404).json({ message: "Voter not found", Success: false });
         }
         res.status(200).json({ message: "Login successful", Success: true,  voter });    
-        // Generate JWT token (if needed)
-        // const token = jwt.sign({ id: voter._id }, SECRET_KEY, { expiresIn: '1h' });
-
     } catch (error) {
         console.error("Error in voter_login:", error);
         res.status(500).json({ message: "Internal Server Error", Success: false });

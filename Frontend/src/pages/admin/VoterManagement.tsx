@@ -33,6 +33,7 @@ import { toast } from "@/components/ui/use-toast";
 import { CheckCircle, Filter, Plus, Search, UploadCloud } from "lucide-react";
 import useAxios from "@/axiosInstance";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { set } from "date-fns";
 
 interface Voter {
   _id: string;
@@ -51,8 +52,12 @@ const VoterManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [isloading, setIsLoading] = useState(false);
+  const [isuploadbuttonloading, setIsUploadButtonLoading] = useState(false);
+  const [isfetchingDataloading, setisfetchingDataloading] = useState(false);
   const [newVoter, setNewVoter] = useState({
     name: "",
+    email: "",
     dob: "",
     city: "",
     state: "",
@@ -67,6 +72,7 @@ const VoterManagement = () => {
   }, [navigate]);
 
   const fetchVoters = async () => {
+    setisfetchingDataloading(true);
     try {
       const res = await axios.get("http://localhost:5000/api/allvoter", {
         headers: {
@@ -82,6 +88,9 @@ const VoterManagement = () => {
       console.error(err);
       toast({ title: "Server Error", description: "Failed to fetch voters." });
     }
+    finally {
+      setisfetchingDataloading(false);
+    }
   };
 
   useEffect(() => {
@@ -92,11 +101,51 @@ const VoterManagement = () => {
     const voterId = `VOTER${Math.floor(1000 + Math.random() * 9000)}`;
     const payload = {
       voterId,
+      email: newVoter.email,
       name: newVoter.name,
       dob: new Date(newVoter.dob).toISOString(),
       location: { city: newVoter.city, state: newVoter.state },
     };
-
+    const dob = new Date(newVoter.dob);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    if (isNaN(age)) {
+      toast({
+        title: "Error",
+        description: "Invalid date of birth.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (age < 0) {
+      toast({
+        title: "Error",
+        description: "Date of birth cannot be in the future.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (age > 120) {
+      toast({
+        title: "Error",
+        description: "Age seems unrealistic.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (age < 18) {
+      toast({
+        title: "Error",
+        description: "Voter must be at least 18 years old.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsLoading(true);
     try {
       const res = await axios.post("http://localhost:5000/api/register-voter", payload, {
         headers: {
@@ -104,31 +153,72 @@ const VoterManagement = () => {
           "device-id": localStorage.getItem("deviceId") || "",
         },
       });
-
       const data = res.data;
+      if (data.message === "Voter Registration Phase is Closed...") {
+        toast({
+          title: "Error",
+          description: "Voter Registration Phase is Closed...",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (data.message === "Email Already Registered...") {
+        toast({
+          title: "Error",
+          description: "This email is already registered.",
+          variant: "destructive",
+        });
+        return;
+      }
+  
+      // Handle duplicate voter ID (if applicable)
+      if (data.message === "Voter Already Registered under this Admin...") {
+        toast({
+          title: "Error",
+          description: "This voter ID is already registered.",
+          variant: "destructive",
+        });
+        return;
+      }
+  
+      // Success case
       if (data.Success) {
         toast({
           title: "Voter registered",
-          description: `Voter ID ${voterId} has been assigned to ${payload.name}`,
+          description: `Voter ID will be sent to ${newVoter.email} shortly.`,
+          variant: "default",
+          duration: 3000,
         });
-        setNewVoter({ name: "", dob: "", city: "", state: "" });
+        setNewVoter({ name: "", email: "", dob: "", city: "", state: "" });
         setIsDialogOpen(false);
         fetchVoters();
       } else {
-        toast({ title: "Error", description: data.message });
+        // Generic error fallback
+        toast({
+          title: "Error",
+          description: data.message || "Registration failed.",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error(err);
-      toast({ title: "Error", description: "Something went wrong." });
+      // Handle network errors or server crashes
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Something went wrong.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
-
   const handleFileUpload = async () => {
+
     if (!file) {
       toast({ title: "Error", description: "No file selected" });
       return;
     }
-
+    setIsUploadButtonLoading(true);
     const formData = new FormData();
     formData.append("file", file);
 
@@ -142,14 +232,26 @@ const VoterManagement = () => {
       });
 
       const data = res.data;
+      console.log(data);
       if (data.Success) {
         toast({
           title: "Upload Success",
-          description: `Uploaded ${data.totalUploaded}, Skipped ${data.totalSkipped}`,
+          description: `Uploaded ${data.stats.registered}, Skipped ${data.stats.skipped} ${data.message} `,
+          variant: "default",
+          duration: 5000,
         });
         setFile(null);
         setIsDialogOpen(false);
         fetchVoters();
+        setIsUploadButtonLoading(false);
+      } else if (data.message === "Voter Registration Phase is Closed...") {
+        toast({
+          title: "Error",
+          description: "Voter Registration Phase is Closed...",
+          variant: "destructive",
+        });
+        setIsUploadButtonLoading(false);
+        return;
       } else {
         toast({ title: "Upload Failed", description: data.message });
       }
@@ -206,6 +308,14 @@ const VoterManagement = () => {
                     onChange={(e) => setNewVoter({ ...newVoter, name: e.target.value })}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    placeholder="Full name"
+                    value={newVoter.email}
+                    onChange={(e) => setNewVoter({ ...newVoter, email: e.target.value })}
+                  />
+                </div>
                 
                 <div className="space-y-2">
                   <Label>Date of Birth</Label>
@@ -242,10 +352,11 @@ const VoterManagement = () => {
                   </Button>
                   <Button
                     onClick={handleRegisterVoter}
-                    disabled={!newVoter.name || !newVoter.dob || !newVoter.city || !newVoter.state}
+                    disabled={!newVoter.name || !newVoter.dob || !newVoter.city || !newVoter.state || !newVoter.email}
                     className="w-full sm:w-auto"
                   >
-                    Register
+                    {isloading ? "Registering..." : "Register Voter"}
+                    {/* {isloading && <span className="ml-2 spinner-border" />} */}
                   </Button>
                 </DialogFooter>
               </TabsContent>
@@ -273,11 +384,12 @@ const VoterManagement = () => {
                   </Button>
                   <Button 
                     onClick={handleFileUpload} 
-                    disabled={!file}
+                    disabled={!file || isuploadbuttonloading}
                     className="w-full sm:w-auto"
                   >
                     <UploadCloud className="mr-2 h-4 w-4" />
-                    Upload & Register
+                    {isuploadbuttonloading ? "Uploading..." : " Upload & Register"}
+                    {isuploadbuttonloading && <span className="ml-2 spinner-border" />}
                   </Button>
                 </DialogFooter>
               </TabsContent>
@@ -320,7 +432,7 @@ const VoterManagement = () => {
           {useIsMobile ? (
             <div className="space-y-2">
               {filteredVoters.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">No voters found</p>
+                <p className="text-center text-muted-foreground py-4">{isfetchingDataloading ? "Loading Please Wait..." : "No Voter Data Found"}</p>
               ) : (
                 filteredVoters.map((voter) => (
                   <Card key={voter._id} className="p-4">

@@ -158,3 +158,48 @@
 [data-state="open"] .bg-background {
   background-color: hsl(var(--background)) !important;
 }
+
+
+@media (max-width: 768px) {
+  .recharts-x-axis .recharts-cartesian-axis-tick {
+    font-size: 10px;
+    transform: rotate(-45deg);
+    text-anchor: end;
+  }
+  .recharts-wrapper {
+    margin-bottom: 50px;
+  }
+}
+
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+::-webkit-scrollbar {
+  display: none;
+}
+
+.anis{
+  margin-left: 12rem;
+  margin-right: 12rem;
+}
+
+.anis2{
+  margin-left: 12rem;
+  margin-right: 12rem;
+}
+
+@media screen and (max-width: 640px) {
+  .anis{
+    margin-left: 1rem;
+    margin-right: 1rem;
+  }
+  .anis2{
+    margin-left: 1rem;
+    margin-right: 1rem;
+  }
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+html {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  overflow: -moz-scrollbars-none; /* Older Firefox */
+}

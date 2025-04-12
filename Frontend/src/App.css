@@ -95,7 +95,32 @@
   color: hsl(var(--foreground));
 }
 
+
+
 /* Force sidebar background */
 [data-state="open"] .bg-background {
   background-color: hsl(var(--background)) !important;
+}
+
+@media (max-width: 768px) {
+  .recharts-x-axis .recharts-cartesian-axis-tick {
+    font-size: 10px;
+    transform: rotate(-45deg);
+    text-anchor: end;
+  }
+  .recharts-wrapper {
+    margin-bottom: 50px;
+  }
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+html {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  overflow: -moz-scrollbars-none; /* Older Firefox */
 }

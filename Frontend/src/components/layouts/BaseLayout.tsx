@@ -6,7 +6,7 @@ const BaseLayout = () => {
   return (
     <div className="min-h-screen bg-background animate-in">
       <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="anis2 flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
             <a href="/" className="font-bold text-xl flex items-center">
               <span className="text-primary">Block</span>
@@ -18,7 +18,7 @@ const BaseLayout = () => {
           </div>
         </div>
       </header>
-      <main className="container py-6">
+      <main className="anis py-6">
         <Outlet />
       </main>
       <footer className="border-t py-6">

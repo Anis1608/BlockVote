@@ -1,5 +1,4 @@
 // downloadStellarCSV.js
-
 import axios from "axios";
 import fs from "fs";
 import { Parser } from "json2csv";

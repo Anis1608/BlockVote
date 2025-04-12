@@ -13,9 +13,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import axios from "axios";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-type Phase = "registration" | "voting" | "results";
+type Phase = "Registration" | "Voting" | "Result" | "Selection Phase";
 
 interface PhaseOption {
   id: Phase;
@@ -26,19 +27,19 @@ interface PhaseOption {
 
 const phases: PhaseOption[] = [
   {
-    id: "registration",
+    id: "Registration",
     name: "Registration",
     icon: ClipboardList,
     description: "Allow voters and candidates to register for the election",
   },
   {
-    id: "voting",
+    id: "Voting",
     name: "Voting",
     icon: Vote,
     description: "Open the election for voting by registered voters",
   },
   {
-    id: "results",
+    id: "Result",
     name: "Results",
     icon: BarChart3,
     description: "Close voting and publish the election results",
@@ -46,9 +47,13 @@ const phases: PhaseOption[] = [
 ];
 
 export function ElectionPhaseSelector() {
-  const [phase, setPhase] = useState<Phase>("voting");
+  const [phase, setPhase] = useState<Phase>("Selection Phase");
   const [showDialog, setShowDialog] = useState(false);
   const [pendingPhase, setPendingPhase] = useState<Phase | null>(null);
+  const [otp, setOtp] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const { toast } = useToast();
   const axios = useAxios();
 
@@ -56,15 +61,20 @@ export function ElectionPhaseSelector() {
   useEffect(() => {
     const fetchPhase = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/get-current-phase" , {
+        const res = await axios.get("http://localhost:5000/api/get-current-phase", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
             "device-id": localStorage.getItem("deviceId"),
           },
-        }); // adjust if needed
+        });
         setPhase(res.data.currentPhase);
       } catch (err) {
         console.error("Failed to fetch current phase", err);
+        toast({
+          title: "Error",
+          description: "Failed to fetch current election phase",
+          variant: "destructive",
+        });
       }
     };
     fetchPhase();
@@ -74,36 +84,75 @@ export function ElectionPhaseSelector() {
     if (selected === phase) return;
     setPendingPhase(selected);
     setShowDialog(true);
+    setOtp("");
+    setIsOtpSent(false);
   };
 
-  const confirmPhaseChange = async () => {
+  const sendOtp = async () => {
     if (!pendingPhase) return;
-
+    
     try {
-      await axios.post("http://localhost:5000/api/changephase" , {
-        currentPhase: pendingPhase,
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
-          "device-id": localStorage.getItem("deviceId"),
-        },
-      });
-      setPhase(pendingPhase);
+      setIsSendingOtp(true);
+      const response = await axios.post(
+        "http://localhost:5000/api/changephase",
+        { currentPhase: pendingPhase },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+            "device-id": localStorage.getItem("deviceId"),
+          },
+        }
+      );
+
       toast({
-        title: "Election phase updated",
-        description: `The election is now in the ${pendingPhase} phase.`,
+        title: "OTP Sent",
+        description: response.data.message || "OTP has been sent to your email",
         duration: 5000,
       });
+      setIsOtpSent(true);
     } catch (error) {
       toast({
-        title: "Error updating phase",
-        description: "Something went wrong while updating the phase.",
+        title: "Failed to send OTP",
+        description: error.response?.data?.message || "Something went wrong while sending OTP",
         variant: "destructive",
       });
       console.error(error);
     } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const verifyOtpAndChangePhase = async () => {
+    if (!pendingPhase || !otp) return;
+
+    try {
+      setIsVerifyingOtp(true);
+      const response = await axios.post(
+        "http://localhost:5000/api/changephase/verify",
+        { otp },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+            "device-id": localStorage.getItem("deviceId"),
+          },
+        }
+      );
+      setPhase(pendingPhase);
+      toast({
+        title: "Success",
+        description: response.data.message || "Election phase updated successfully",
+        duration: 5000,
+      });
       setShowDialog(false);
-      setPendingPhase(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Invalid OTP or something went wrong",
+        variant: "destructive",
+      });
+      console.error(error);
+    } finally {
+      setIsVerifyingOtp(false);
     }
   };
 
@@ -172,7 +221,7 @@ export function ElectionPhaseSelector() {
             </DialogDescription>
           </DialogHeader>
 
-          {pendingPhase === "results" && (
+          {pendingPhase === "Result" && (
             <div className="rounded-md bg-warning/10 border-warning/20 border p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-warning mt-0.5" />
@@ -186,11 +235,51 @@ export function ElectionPhaseSelector() {
             </div>
           )}
 
+          <div className="space-y-4">
+            {!isOtpSent ? (
+              <Button 
+                onClick={sendOtp} 
+                disabled={isSendingOtp}
+                className="w-full"
+              >
+                {isSendingOtp ? "Sending OTP..." : "Send OTP"}
+              </Button>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="otp">Enter OTP</Label>
+                  <Input
+                    id="otp"
+                    placeholder="Enter 6-digit OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    maxLength={6}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Check your email for the verification OTP
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowDialog(false);
+                setOtp("");
+                setIsOtpSent(false);
+              }}
+            >
               Cancel
             </Button>
-            <Button onClick={confirmPhaseChange}>Confirm Change</Button>
+            <Button 
+              onClick={verifyOtpAndChangePhase} 
+              disabled={!isOtpSent || !otp || otp.length !== 6 || isVerifyingOtp}
+            >
+              {isVerifyingOtp ? "Verifying..." : "Confirm Change"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

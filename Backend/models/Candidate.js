@@ -11,7 +11,8 @@ const candidateSchema = new mongoose.Schema({
     required: true,
   },
   profilePic: {
-    type: String
+    type: String,
+    default: "https://example.com/default-profile-pic.jpg",
   },
   age: {
     type: Number,

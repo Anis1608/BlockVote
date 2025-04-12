@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const voterSchema = new mongoose.Schema({
     admin: {
@@ -8,8 +8,11 @@ const voterSchema = new mongoose.Schema({
     },
     voterId: {
         type: String,
-        required: true,
-        unique: true
+        required: true
+    },
+    email: {
+        type: String,
+        required: true
     },
     name: {
         type: String,
@@ -36,7 +39,12 @@ const voterSchema = new mongoose.Schema({
     voteTransactionId: {
         type: String
     }
-})
+});
 
-const Voter_Details = mongoose.model("Voter Database", voterSchema)
-export default Voter_Details
+// Compound unique index for (admin + voterId)
+voterSchema.index({ admin: 1, voterId: 1 }, { unique: true });
+// Compound unique index for (admin + email)
+voterSchema.index({ admin: 1, email: 1 }, { unique: true });
+
+const Voter_Details = mongoose.model("Voter Database", voterSchema);
+export default Voter_Details;

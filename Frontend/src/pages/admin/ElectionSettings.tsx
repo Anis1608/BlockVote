@@ -305,7 +305,7 @@ const ElectionSettings = () => {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
+        {/* <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Advanced Settings</CardTitle>
             <CardDescription>
@@ -416,7 +416,7 @@ const ElectionSettings = () => {
               Save Settings
             </Button>
           </CardFooter>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );

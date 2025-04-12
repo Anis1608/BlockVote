@@ -1,99 +1,227 @@
-import fs from "fs";
-import path from "path";
-import xlsx from "xlsx";
-import csvParser from "csv-parser";
-import VoterData from "../../models/Voter.js";
+import fs from 'fs';
+import path from 'path';
+import xlsx from 'xlsx';
+import csvParser from 'csv-parser';
+import VoterData from '../../models/Voter.js';
+import { logActivity } from '../../middleware/activityLogger.js';
+import emailQueue from '../../Utils/emailQueue.js';
+
+// Helper function to validate and format date
+const formatDate = (dobRaw) => {
+  const dateMatch = dobRaw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if (dateMatch) {
+    const [_, dd, mm, yyyy] = dateMatch;
+    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  }
+  return null;
+};
+
+// Helper function to clean up file
+const cleanupFile = (filePath) => {
+  if (fs.existsSync(filePath)) {
+    fs.unlink(filePath, (err) => {
+      if (err) console.error('Error deleting file:', err);
+    });
+  }
+};
 
 export const bulkRegisterVoters = async (req, res) => {
+  const startTime = Date.now();
+  let filePath;
+
   try {
-    const file = req.file;
-    if (!file) {
-      return res.status(400).json({ message: "No file uploaded", Success: false });
+    // Phase validation
+    const currentPhase = req.admin.currentPhase;
+    if (currentPhase !== 'Registration') {
+      return res.status(400).json({
+        message: 'Voter registration is currently closed',
+        success: false,
+      });
     }
 
-    const filePath = file.path;
+    // File validation
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ 
+        message: 'No file uploaded', 
+        success: false 
+      });
+    }
+
+    filePath = file.path;
     const ext = path.extname(file.originalname).toLowerCase();
     const adminId = req.admin._id;
 
+    if (!['.csv', '.xlsx'].includes(ext)) {
+      cleanupFile(filePath);
+      return res.status(400).json({ 
+        message: 'Only CSV and Excel files are allowed', 
+        success: false 
+      });
+    }
+
+    // Process file
     const voters = [];
+    const errors = [];
+    let rowCount = 0;
 
-    const processRow = (row) => {
-      const voterId = row.voterId?.toString().trim();
-      const name = row.name?.toString().trim();
-      const dobRaw = row.dob?.toString().trim();
-      const city = row.city?.toString().trim();
-      const state = row.state?.toString().trim();
+    const processRow = (row, index) => {
+      rowCount++;
+      try {
+        const voterId = row.voterId?.toString().trim();
+        const email = row.email?.toString().trim().toLowerCase();
+        const name = row.name?.toString().trim();
+        const dobRaw = row.dob?.toString().trim();
+        const city = row.city?.toString().trim();
+        const state = row.state?.toString().trim();
 
-      if (!voterId || !name || !dobRaw || !state || !city) return;
-
-      // Convert DD-MM-YYYY or DD/MM/YYYY to YYYY-MM-DD
-      let dob = dobRaw;
-      const dateMatch = dobRaw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
-      if (dateMatch) {
-        const [_, dd, mm, yyyy] = dateMatch;
-        dob = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
-      } else {
-        return;
-      }
-
-      voters.push({
-        voterId,
-        name,
-        dob,
-        location: {
-          state,
-          city,
-        },
-        admin: adminId,
-      });
-    };
-
-    const saveVoters = async () => {
-      const results = [];
-
-      for (const voter of voters) {
-        const exists = await VoterData.findOne({ voterId: voter.voterId, admin: adminId });
-        if (!exists) {
-          results.push(await VoterData.create(voter));
+        // Validate required fields
+        if (!voterId || !email || !name || !dobRaw || !city || !state) {
+          errors.push({
+            row: index + 2, // +1 for header, +1 for 0-based index
+            error: 'Missing required fields',
+            data: row
+          });
+          return;
         }
-      }
 
-      // Delete file after processing
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error("Error deleting file:", err);
-        } else {
-          console.log("File deleted:", filePath);
+        // Validate and format date
+        const dob = formatDate(dobRaw);
+        if (!dob) {
+          errors.push({
+            row: index + 2,
+            error: 'Invalid date format (use DD-MM-YYYY or DD/MM/YYYY)',
+            data: row
+          });
+          return;
         }
-      });
 
-      return res.status(200).json({
-        message: "Voters processed successfully",
-        Success: true,
-        totalUploaded: results.length,
-        totalSkipped: voters.length - results.length,
-      });
-    };
+        // Validate email format
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          errors.push({
+            row: index + 2,
+            error: 'Invalid email format',
+            data: row
+          });
+          return;
+        }
 
-    if (ext === ".csv") {
-      fs.createReadStream(filePath)
-        .pipe(csvParser())
-        .on("data", processRow)
-        .on("end", async () => {
-          await saveVoters();
+        voters.push({
+          voterId,
+          name,
+          dob,
+          email,
+          location: { state, city },
+          admin: adminId,
+          registrationDate: new Date()
         });
-    } else if (ext === ".xlsx") {
+      } catch (error) {
+        errors.push({
+          row: index + 2,
+          error: 'Processing error',
+          details: error.message,
+          data: row
+        });
+      }
+    };
+
+    // File processing
+    if (ext === '.csv') {
+      await new Promise((resolve, reject) => {
+        fs.createReadStream(filePath)
+          .pipe(csvParser())
+          .on('data', (row) => processRow(row, rowCount))
+          .on('end', resolve)
+          .on('error', reject);
+      });
+    } else {
       const workbook = xlsx.readFile(filePath);
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const data = xlsx.utils.sheet_to_json(sheet);
-      data.forEach(processRow);
-      await saveVoters();
-    } else {
-      fs.unlinkSync(filePath); // delete unsupported files immediately
-      return res.status(400).json({ message: "Unsupported file type", Success: false });
+      data.forEach((row, index) => processRow(row, index));
     }
+
+    const results = [];
+    const skipped = [];
+    const emailJobs = [];
+
+    for (const voter of voters) {
+      try {
+        const existingVoter = await VoterData.findOne({
+          admin: adminId,
+          $or: [{ voterId: voter.voterId }, { email: voter.email }]
+        });
+
+        if (existingVoter) {
+          skipped.push({
+            voterId: voter.voterId,
+            email: voter.email,
+            reason: existingVoter.voterId === voter.voterId ? 
+                   'Voter ID already exists' : 'Email already registered'
+          });
+          continue;
+        }
+        const newVoter = await VoterData.create(voter);
+        results.push(newVoter);
+
+        // Add email job to queue
+        const job = await emailQueue.add(
+          { voter: newVoter.toObject() },
+          { 
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5000 },
+            timeout: 10000,
+            removeOnComplete: true,
+            removeOnFail: 100 // Keep last 100 failed jobs
+          }
+        );
+        emailJobs.push(job.id);
+      } catch (error) {
+        console.error(`Error processing voter ${voter.voterId}:`, error);
+        errors.push({
+          voterId: voter.voterId,
+          error: 'Database error',
+          details: error.message
+        });
+      }
+    }
+
+    // Log activity
+    await logActivity(req, 'bulk_voter_registration', 'success', {
+      totalUploaded: results.length,
+      totalSkipped: skipped.length,
+    });
+
+    // Clean up file
+    cleanupFile(filePath);
+
+    // Response
+    return res.status(200).json({
+      message: 'Voter Registration Completed... Voter will Receive VoterID Their Respective Email Shortly',
+      Success: true,
+      stats: {
+        totalRows: rowCount,
+        registered: results.length,
+        skipped: skipped.length,
+        processingTime: `${(Date.now() - startTime) / 1000} seconds`,
+      },
+      details: {
+        registeredVoters: results.map(v => v.voterId),
+        skippedVoters: skipped,
+      },
+      queuedEmails: emailJobs.length,
+    });
+
   } catch (error) {
-    console.error("Bulk voter registration error:", error);
-    return res.status(500).json({ message: "Internal Server Error", Success: false });
+    console.error('Bulk registration error:', error);
+
+    if (filePath) cleanupFile(filePath);
+
+    return res.status(500).json({
+      message: 'Internal server error during bulk registration',
+      success: false,
+      error: process.env.NODE_ENV === 'development' ? 
+        error.message : 'Please contact support'
+    });
   }
 };

@@ -1,3 +1,4 @@
+import { logActivity } from "../middleware/activityLogger.js";
 import candidateModel from "../models/Candidate.js";
 import VoterModel from "../models/Voter.js";
 
@@ -5,7 +6,15 @@ import VoterModel from "../models/Voter.js";
 export const RegisterCandidate = async (req, res) => {
   try {
     const adminId = req.admin._id;
+    const currentPhase = req.admin.currentPhase; // assuming you're using middleware to attach admin info to req
     const { candidateId, name, profilePic, age, qualification, location, party } = req.body;
+
+    if (currentPhase !== "Registration") {
+      return res.status(200).json({
+        message: "Candidate Registration Phase is Closed...",
+        success: false
+      });
+    }
 
     if (!candidateId || !name || !profilePic || !age || !qualification || !location || !party) {
       return res.status(400).json({ message: "Something is Missing..." });
@@ -36,6 +45,8 @@ export const RegisterCandidate = async (req, res) => {
       party,
       admin: adminId
     });
+
+    await logActivity(req, "Candidate Registration", "success", {name});
 
     res.status(200).json({
       message: "Candidate Registered Successfully...",

@@ -31,9 +31,9 @@ export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
           <NavItem href="/admin/candidates" icon={ClipboardList} onClick={onNavigate}>
             Candidates
           </NavItem>
-          <NavItem href="/admin/settings" icon={Settings} onClick={onNavigate}>
+          {/* <NavItem href="/admin/settings" icon={Settings} onClick={onNavigate}>
             Election Settings
-          </NavItem>
+          </NavItem> */}
           <NavItem href="/results" icon={BarChart3} onClick={onNavigate}>
             Results
           </NavItem>

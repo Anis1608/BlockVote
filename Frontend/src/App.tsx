@@ -13,7 +13,7 @@ import AdminRegister from "./pages/auth/AdminRegister";
 import AdminDashboard from "./pages/admin/Dashboard";
 import VoterManagement from "./pages/admin/VoterManagement";
 import CandidateManagement from "./pages/admin/CandidateManagement";
-import ElectionSettings from "./pages/admin/ElectionSettings";
+// import ElectionSettings from "./pages/admin/ElectionSettings";
 
 // Voter Pages
 import VoterLogin from "./pages/voter/VoterLogin";
@@ -34,6 +34,7 @@ import NotFound from "./pages/NotFound";
 import Home from "./pages/Index";
 // import DesktopModeOnly from "./restrict/DesktopModeOnly";
 import PublicResultPage from "./pages/results/PublicResultPage";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -61,6 +62,7 @@ const App = () => (
                     {/* Auth Routes */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/admin/register" element={<AdminRegister />} />
+                    <Route path="/forgotpassword" element={<ForgotPassword />} />
 
                     {/* Voter Routes */}
                     <Route path="/voter/login" element={<VoterLogin />} />
@@ -75,13 +77,8 @@ const App = () => (
                       <Route path="/admin/dashboard" element={<AdminDashboard />} />
                       <Route path="/admin/voters" element={<VoterManagement />} />
                       <Route path="/admin/candidates" element={<CandidateManagement />} />
-                      <Route path="/admin/settings" element={<ElectionSettings />} />
+                      {/* <Route path="/admin/settings" element={<ElectionSettings />} /> */}
                       <Route path="/results" element={<Results />} />
-                    </Route>
-
-                    {/* Results Page */}
-                    <Route element={<BaseLayout />}>
-                     
                     </Route>
 
                     {/* Catch-all */}
