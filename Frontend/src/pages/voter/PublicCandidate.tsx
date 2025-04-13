@@ -50,7 +50,7 @@ const PublicCandidate = () => {
   useEffect(() => {
     const fetchAdmins = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/admins");
+        const response = await axios.get("https://blockvote.site/api/admins");
         setAdmins(response.data.admins);
       } catch (error) {
         console.error("Error fetching admins:", error);
@@ -68,7 +68,7 @@ const PublicCandidate = () => {
       setLoading(true);
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/candidates?adminId=${selectedAdmin._id}`
+          `https://blockvote.site/api/candidates?adminId=${selectedAdmin._id}`
         );
         setCandidates(response.data.candidates);
         setFilteredCandidates(response.data.candidates);

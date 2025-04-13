@@ -7,7 +7,7 @@ const useAxios = () => {
   const navigate = useNavigate();
 
   const axiosInstance = axios.create({
-    baseURL: "http://localhost:5000/api",
+    baseURL: "https://blockvote.site/api",
   });
 
   useEffect(() => {

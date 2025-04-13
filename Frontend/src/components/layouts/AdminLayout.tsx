@@ -53,7 +53,7 @@ const AdminLayout = () => {
   useEffect(() => {
     if (isProfileOpen) {
       const token = localStorage.getItem("adminToken");
-      axios.get("http://localhost:5000/api/get-details", {
+      axios.get("https://blockvote.site/api/get-details", {
         headers: {
           Authorization: `Bearer ${token}`,
           "device-id": currentDeviceId,
@@ -67,7 +67,7 @@ const AdminLayout = () => {
   useEffect(() => {
     if (isDeviceDialogOpen) {
       const token = localStorage.getItem("adminToken");
-      axios.get("http://localhost:5000/api/get-active-devices", {
+      axios.get("https://blockvote.site/api/get-active-devices", {
         headers: {
           Authorization: `Bearer ${token}`,
           "device-id": currentDeviceId,
@@ -84,7 +84,7 @@ const AdminLayout = () => {
     
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/request-device-logout",
+        "https://blockvote.site/api/request-device-logout",
         { deviceId },
         {
           headers: {
@@ -118,7 +118,7 @@ const AdminLayout = () => {
     setIsProcessing(true);
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/verify-logout-otp",
+        "https://blockvote.site/api/verify-logout-otp",
         { deviceId: logoutDeviceId, otp },
         {
           headers: {

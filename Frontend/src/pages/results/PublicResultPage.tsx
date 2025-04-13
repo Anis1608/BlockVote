@@ -56,7 +56,7 @@ export default function PublicResultPage() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/admins")
+      .get("https://blockvote.site/api/admins")
       .then((res) => setAdmins(res.data.admins))
       .catch(console.error);
   }, []);
@@ -69,7 +69,7 @@ export default function PublicResultPage() {
     setPhaseMessage(null);
 
     axios
-      .get(`http://localhost:5000/api/public-result?adminId=${selectedAdmin._id}`)
+      .get(`https://blockvote.site/api/public-result?adminId=${selectedAdmin._id}`)
       .then((res) => {
         if (res.data.success === false && res.data.message) {
           if (res.data.message.includes("Registration Phase is in Progress...")) {
