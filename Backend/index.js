@@ -9,9 +9,11 @@ import electionPhaseRoutes from "./routes/electionPhaseRoutes.js";
 import logoutRoutes from "./routes/logoutRoutes.js";
 import forgotpasswordAdminRoutes from "./routes/forgotpasswordAdminRoutes.js";
 import cors from "cors"
+import "dotenv/config"
 import activityLogRoutes from "./routes/activityLogRoutes.js";
 const app = express();
 app.use(cors());
+
 app.use(express.json())
 
 // app.use("/voter" , user_routes)

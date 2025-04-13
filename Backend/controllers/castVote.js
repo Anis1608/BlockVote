@@ -1,12 +1,12 @@
 import StellarSdk from "stellar-sdk";
 import bcrypt from "bcryptjs";
 import AdminData from "../models/Admin.js";
-
+import "dotenv/config"
 import Voter from "../models/Voter.js";
 import Candidate from "../models/Candidate.js";
 import { logActivity } from "../middleware/activityLogger.js";
 
-const STELLAR_SERVER = "https://horizon-testnet.stellar.org"; // Stellar Testnet link
+const STELLAR_SERVER = process.env.STELLAR_SERVER; // Stellar Testnet link
 // const STELLAR_SECRET = "SB4L3577Z5RYXII6S6C6JRK2MFKNPX2XRYKTKG4HQLWIWZP4W4HOFBBK"; //  Secret Key
 // const STELLAR_ACCOUNT = "GB4EJAAKTHEBXOYBN3IX3EYXXN2PWMXUVIWVBYYVV274M5M3LZOZNMFX"; //  Public Key
 

@@ -1,9 +1,7 @@
-// routes/middlewares/fileUpload.js
 import multer from "multer";
 import fs from "fs";
 import path from "path";
 
-// Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);

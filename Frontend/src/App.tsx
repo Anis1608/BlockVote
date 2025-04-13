@@ -34,7 +34,10 @@ import NotFound from "./pages/NotFound";
 import Home from "./pages/Index";
 // import DesktopModeOnly from "./restrict/DesktopModeOnly";
 import PublicResultPage from "./pages/results/PublicResultPage";
+
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import PublicCandidate from "./pages/voter/publicCandidate";
+// import { StellarDemo } from "./components/layouts/demo";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -48,6 +51,7 @@ const App = () => (
             {/* Public Route (Accessible on all devices) */}
             <Route element={<BaseLayout />}>
               <Route path="/public/result" element={<PublicResultPage />} />
+              <Route path="/candidates" element={<PublicCandidate/>} />
             </Route>
 
             {/* All other routes wrapped with DesktopModeOnly */}
@@ -83,6 +87,7 @@ const App = () => (
 
                     {/* Catch-all */}
                     <Route path="*" element={<NotFound />} />
+                    {/* <Route path="/demo" element={<StellarDemo />} /> */}
                   </Routes>
                 // </DesktopModeOnly>
               }

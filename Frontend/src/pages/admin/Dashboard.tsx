@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   BarChart as LucideBarChart,
   CalendarRange,
@@ -91,6 +90,7 @@ const Dashboard = () => {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [displayedLogsCount, setDisplayedLogsCount] = useState<number>(4);
+  const [currentPhase, setCurrentPhase] = useState<string>("");
 
 
   const axios = useAxios();
@@ -127,6 +127,14 @@ const Dashboard = () => {
     axios
     .get("http://localhost:5000/api/register-votercount", headers)
     .then((res) => setTotalVoters(res.data.totalVoter))
+    .catch((err) => handleAuthError(err));
+
+    axios
+    .get("http://localhost:5000/api/get-current-phase", headers)
+    .then((res) => {
+      setCurrentPhase(res.data.currentPhase);
+      setIsLoading(false);
+    })
     .catch((err) => handleAuthError(err));
 
   axios
@@ -212,11 +220,18 @@ const Dashboard = () => {
     },
     {
       title: "Election Status",
-      value: "Active",
+      value: isLoading
+        ? "Loading..."
+        : currentPhase === "Result"
+        ? "End"
+        : currentPhase === "Voting" || currentPhase === "Registration"
+        ? "Active"
+        : "Yet Not Started",
       icon: CalendarRange,
-      description: "Ends in 2 days, 14 hours",
+      description: "",
       change: "Voting phase",
-    },
+    }
+    
   ];
 
   const locationVotes: LocationVote[] = [
@@ -276,7 +291,7 @@ const Dashboard = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
         {/* Hourly Votes Card */}
         <Card className="animate-in shadow-sm flex flex-col" style={{ animationDelay: "400ms", height: "500px" }}>
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-6 pt-4 pb-2 shrink-0">
@@ -358,7 +373,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Location Votes Card */}
-        <Card className="animate-in shadow-sm" style={{ animationDelay: "500ms" }}>
+        {/* <Card className="animate-in shadow-sm" style={{ animationDelay: "500ms" }}>
           <CardHeader>
             <CardTitle>Votes by Location</CardTitle>
             <CardDescription>Distribution across electoral districts</CardDescription>
@@ -376,7 +391,7 @@ const Dashboard = () => {
               </div>
             ))}
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Bottom Section */}
@@ -411,16 +426,16 @@ const Dashboard = () => {
               </p>
     
               {log.metadata?.transactionHash && (
-                <p className="text-xs text-muted-foreground">
-                  Transaction Hash: {log.metadata.transactionHash}
-                </p>
+            <p className="text-xs text-muted-foreground break-all">
+            Transaction Hash: {log.metadata.transactionHash}
+          </p>
               )}
-           
+
               <p className="text-xs truncate">
-                {log.userId?.name || 'System'} - {log.metadata?.name || log.description.replace(/_/g, ' ')}  
+                {log.metadata?.name || log.description.replace(/_/g, ' ')}  
               </p>
         
-              {log.metadata?.totalUploaded &&  (
+              {log.metadata?.totalUploaded >=0 &&  (
                 <p className="text-xs text-muted-foreground">
                   Total Voters Successfully Added : {log.metadata.totalUploaded}
                 </p>
@@ -478,12 +493,14 @@ const Dashboard = () => {
             </Button>
             <Button variant="outline" className="w-full justify-start">
               <LucideBarChart className="mr-2 h-4 w-4" />
+              <Link to={"/results"}>     
               <span className="truncate">Generate Reports</span>
+              </Link>
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            {/* <Button variant="outline" className="w-full justify-start">
               <CalendarRange className="mr-2 h-4 w-4" />
               <span className="truncate">Manage Election Schedule</span>
-            </Button>
+            </Button> */}
           </CardContent>
         </Card>
       </div>

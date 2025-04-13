@@ -1,4 +1,5 @@
 import { logActivity } from "../middleware/activityLogger.js";
+import AdminData from "../models/Admin.js";
 import candidateModel from "../models/Candidate.js";
 import VoterModel from "../models/Voter.js";
 
@@ -63,10 +64,10 @@ export const RegisterCandidate = async (req, res) => {
   }
 };
 
-// ✅ 2. Get All Candidates
+//  2. Get All Candidates
 export const getAllCandidates = async (req, res) => {
   try {
-    const adminId = req.admin._id; // assuming you're using middleware to attach admin info to req
+    const adminId = req.admin._id; 
     const getDetails = await candidateModel.find({ admin: adminId });
 
     if (!getDetails || getDetails.length === 0) {
@@ -89,14 +90,45 @@ export const getAllCandidates = async (req, res) => {
 };
 
 
-// ✅ 3. Get Candidates from Same City as Voter
+
+export const getCandidateforPublic = async (req, res) => {
+  try {
+    const { adminId } = req.query; 
+    const candidates = await candidateModel.find({ admin: adminId });
+
+    if (!candidates || candidates.length === 0) {
+      return res.status(404).json({ message: "No Candidates Found for this Admin", success: false });
+    }
+    res.status(200).json({
+      success: true,
+      candidates: candidates.map(c => ({
+        name: c.name,
+        party: c.party,
+        age: c.age,
+        qualification: c.qualification,
+        location: c.location,
+        profile: c.profilePic,    
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching candidates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch candidates'
+    });
+  }
+};
+
+
+
+
+// 3. Get Candidates from Same City as Voter
 export const SameCityCandidate = async (req, res) => {
   try {
     const { voterId } = req.body;
     if (!voterId) {
       return res.status(400).json({ message: "Voter ID is required", success: false });
     }
-
     const voter = await VoterModel.findOne({ voterId });
     if (!voter) {
       return res.status(404).json({ message: "Voter not found", success: false });
@@ -150,7 +182,7 @@ export const SameCityCandidate = async (req, res) => {
 //   }
 // };
 
-// ✅ 5. Get Total Candidates Registered by Admin
+// . Get Total Candidates Registered by Admin
 export const totalnoCandidate = async (req, res) => {
   try {
     const adminId = req.admin._id;

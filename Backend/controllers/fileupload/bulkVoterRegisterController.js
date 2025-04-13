@@ -17,13 +17,13 @@ const formatDate = (dobRaw) => {
 };
 
 // Helper function to clean up file
-const cleanupFile = (filePath) => {
-  if (fs.existsSync(filePath)) {
-    fs.unlink(filePath, (err) => {
-      if (err) console.error('Error deleting file:', err);
-    });
-  }
-};
+// const cleanupFile = (filePath) => {
+//   if (fs.existsSync(filePath)) {
+//     fs.unlink(filePath, (err) => {
+//       if (err) console.error('Error deleting file:', err);
+//     });
+//   }
+// };
 
 export const bulkRegisterVoters = async (req, res) => {
   const startTime = Date.now();
@@ -48,6 +48,9 @@ export const bulkRegisterVoters = async (req, res) => {
       });
     }
 
+    // Get email preference from request body
+    const sendEmails = req.body.sendEmails === 'yes';
+    
     filePath = file.path;
     const ext = path.extname(file.originalname).toLowerCase();
     const adminId = req.admin._id;
@@ -78,7 +81,7 @@ export const bulkRegisterVoters = async (req, res) => {
         // Validate required fields
         if (!voterId || !email || !name || !dobRaw || !city || !state) {
           errors.push({
-            row: index + 2, // +1 for header, +1 for 0-based index
+            row: index + 2,
             error: 'Missing required fields',
             data: row
           });
@@ -151,7 +154,7 @@ export const bulkRegisterVoters = async (req, res) => {
           admin: adminId,
           $or: [{ voterId: voter.voterId }, { email: voter.email }]
         });
-
+      
         if (existingVoter) {
           skipped.push({
             voterId: voter.voterId,
@@ -160,22 +163,40 @@ export const bulkRegisterVoters = async (req, res) => {
                    'Voter ID already exists' : 'Email already registered'
           });
           continue;
+      }
+        const dob = formatDate(voter.dob);
+        const currentDate = new Date();
+        const age = currentDate.getFullYear() - new Date(dob).getFullYear();
+        const monthDiff = currentDate.getMonth() - new Date(dob).getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && currentDate.getDate() < new Date(dob).getDate())) {
+          voter.age = age - 1; // Adjust age if birthday hasn't occurred yet this year
+        } else {
+          voter.age = age; // Set age directly
+        }
+        if (voter.age < 18) {
+          skipped.push({
+            voterId: voter.voterId,
+            email: voter.email,
+            reason: 'Voter is under 18 years old'
+          });
+          continue;
         }
         const newVoter = await VoterData.create(voter);
         results.push(newVoter);
-
-        // Add email job to queue
-        const job = await emailQueue.add(
-          { voter: newVoter.toObject() },
-          { 
-            attempts: 3,
-            backoff: { type: 'exponential', delay: 5000 },
-            timeout: 10000,
-            removeOnComplete: true,
-            removeOnFail: 100 // Keep last 100 failed jobs
-          }
-        );
-        emailJobs.push(job.id);
+        // Only add email job if sendEmails is true
+        if (sendEmails) {
+          const job = await emailQueue.add(
+            { voter: newVoter.toObject() },
+            { 
+              attempts: 3,
+              backoff: { type: 'exponential', delay: 5000 },
+              timeout: 10000,
+              removeOnComplete: true,
+              removeOnFail: 100
+            }
+          );
+          emailJobs.push(job.id);
+        }
       } catch (error) {
         console.error(`Error processing voter ${voter.voterId}:`, error);
         errors.push({
@@ -190,26 +211,35 @@ export const bulkRegisterVoters = async (req, res) => {
     await logActivity(req, 'bulk_voter_registration', 'success', {
       totalUploaded: results.length,
       totalSkipped: skipped.length,
+      emailsSent: sendEmails ? emailJobs.length : 0
     });
 
     // Clean up file
-    cleanupFile(filePath);
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("Error deleting file:", err);
+      } else {
+        console.log("File deleted:", filePath);
+      }
+    });
 
     // Response
     return res.status(200).json({
-      message: 'Voter Registration Completed... Voter will Receive VoterID Their Respective Email Shortly',
+      message: sendEmails 
+        ? 'Voter Registration Completed... Voter will Receive VoterID Their Respective Email Shortly'
+        : 'Voter Registration Completed Successfully',
       Success: true,
       stats: {
         totalRows: rowCount,
         registered: results.length,
         skipped: skipped.length,
+        emailsSent: sendEmails ? emailJobs.length : 0,
         processingTime: `${(Date.now() - startTime) / 1000} seconds`,
       },
       details: {
         registeredVoters: results.map(v => v.voterId),
         skippedVoters: skipped,
-      },
-      queuedEmails: emailJobs.length,
+      }
     });
 
   } catch (error) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,16 @@ const Login = () => {
   const [otpSent, setOtpSent] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const token = localStorage.getItem("adminToken");
+    const device = localStorage.getItem("deviceId");
+    if (token && device) {
+      navigate("/admin/dashboard");
+    }
+  }
+  , [navigate]);
 
   const deviceId = localStorage.getItem("deviceId") || uuidv4();
 
@@ -180,6 +190,15 @@ const Login = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Sending OTP..." : "Login"}
                 </Button>
+                <div className="text-center text-sm text-muted-foreground">
+                  Don't have an account?{" "}
+                  <Link
+                    to="/admin/register"
+                    className="text-secondary hover:underline"
+                  >
+                    Sign up
+                  </Link>
+                </div>
               </CardFooter>
             </form>
           ) : (

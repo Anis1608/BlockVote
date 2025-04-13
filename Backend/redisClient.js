@@ -1,6 +1,7 @@
 
 import Redis from "ioredis";
+import "dotenv/config"
 
-const redis = new Redis("redis://default:Aniskhan1608%40@redis-13772.c301.ap-south-1-1.ec2.redns.redis-cloud.com:13772");
+const redis = new Redis(process.env.REDIS_URL);
 
 export default redis;

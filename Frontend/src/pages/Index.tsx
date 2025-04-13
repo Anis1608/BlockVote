@@ -2,8 +2,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CheckCircle, Lock, Shield, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+
 
 const Home = () => {
+  const Navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleButtonClick = () => {
+  const token = localStorage.getItem("adminToken");
+  const deviceId = localStorage.getItem("deviceId");
+    if (!token || !deviceId) {
+      toast({
+        title: "Admin Login Required",
+        description: "Admins Login Required To Cast Vote.",
+        variant: "destructive",
+      });
+      return;
+    }
+    Navigate("/voter/login");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header with mobile-specific changes */}
@@ -18,12 +38,13 @@ const Home = () => {
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-4">
               <ThemeToggle />
-              <Button asChild variant="outline">
-                <a href="/voter/login">Voter Access</a>
+              <Button asChild onClick={handleButtonClick} variant="outline">
+                Voter Access
               </Button>
               <Button asChild>
                 <a href="/login">Admin Login</a>
               </Button>
+      
             </div>
             <div className="flex sm:hidden items-center gap-2">
               <Button asChild size="sm" className="px-2">
@@ -47,8 +68,11 @@ const Home = () => {
                 Transparent, immutable, and verifiable elections powered by blockchain technology.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" asChild>
-                  <a href="/voter/login">Vote Now</a>
+                <Button onClick={handleButtonClick} size="lg" variant="default" asChild>
+                <p>Vote now</p>
+                </Button>
+                <Button size="lg" variant="default" asChild>
+                  <a href="/candidates">View Candidates</a>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
                   <a href="/public/result">View Results</a>

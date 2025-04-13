@@ -33,7 +33,6 @@ import { toast } from "@/components/ui/use-toast";
 import { CheckCircle, Filter, Plus, Search, UploadCloud } from "lucide-react";
 import useAxios from "@/axiosInstance";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { set } from "date-fns";
 
 interface Voter {
   _id: string;
@@ -62,6 +61,7 @@ const VoterManagement = () => {
     city: "",
     state: "",
   });
+  const [sendEmails, setSendEmails] = useState<'yes' | 'no'>('yes');
 
   const axios = useAxios();
   const navigate = useNavigate();
@@ -87,8 +87,7 @@ const VoterManagement = () => {
     } catch (err) {
       console.error(err);
       toast({ title: "Server Error", description: "Failed to fetch voters." });
-    }
-    finally {
+    } finally {
       setisfetchingDataloading(false);
     }
   };
@@ -99,89 +98,35 @@ const VoterManagement = () => {
 
   const handleRegisterVoter = async () => {
     const voterId = `VOTER${Math.floor(1000 + Math.random() * 9000)}`;
+  
     const payload = {
       voterId,
       email: newVoter.email,
       name: newVoter.name,
       dob: new Date(newVoter.dob).toISOString(),
-      location: { city: newVoter.city, state: newVoter.state },
+      location: {
+        city: newVoter.city,
+        state: newVoter.state,
+      },
     };
-    const dob = new Date(newVoter.dob);
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const monthDiff = today.getMonth() - dob.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-      age--;
-    }
-    if (isNaN(age)) {
-      toast({
-        title: "Error",
-        description: "Invalid date of birth.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (age < 0) {
-      toast({
-        title: "Error",
-        description: "Date of birth cannot be in the future.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (age > 120) {
-      toast({
-        title: "Error",
-        description: "Age seems unrealistic.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (age < 18) {
-      toast({
-        title: "Error",
-        description: "Voter must be at least 18 years old.",
-        variant: "destructive",
-      });
-      return;
-    }
+  
     setIsLoading(true);
+  
     try {
-      const res = await axios.post("http://localhost:5000/api/register-voter", payload, {
+      const token = localStorage.getItem("adminToken");
+      const deviceId = localStorage.getItem("deviceId") || "";
+  
+      const response = await fetch("http://localhost:5000/api/register-voter", {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
-          "device-id": localStorage.getItem("deviceId") || "",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "device-id": deviceId,
         },
+        body: JSON.stringify(payload),
       });
-      const data = res.data;
-      if (data.message === "Voter Registration Phase is Closed...") {
-        toast({
-          title: "Error",
-          description: "Voter Registration Phase is Closed...",
-          variant: "destructive",
-        });
-        return;
-      }
-      if (data.message === "Email Already Registered...") {
-        toast({
-          title: "Error",
-          description: "This email is already registered.",
-          variant: "destructive",
-        });
-        return;
-      }
   
-      // Handle duplicate voter ID (if applicable)
-      if (data.message === "Voter Already Registered under this Admin...") {
-        toast({
-          title: "Error",
-          description: "This voter ID is already registered.",
-          variant: "destructive",
-        });
-        return;
-      }
-  
-      // Success case
+      const data = await response.json();
       if (data.Success) {
         toast({
           title: "Voter registered",
@@ -189,77 +134,85 @@ const VoterManagement = () => {
           variant: "default",
           duration: 3000,
         });
-        setNewVoter({ name: "", email: "", dob: "", city: "", state: "" });
-        setIsDialogOpen(false);
-        fetchVoters();
-      } else {
-        // Generic error fallback
+      }
+      else {
         toast({
-          title: "Error",
-          description: data.message || "Registration failed.",
+          title: "Registration failed",
+          description: data.message,
           variant: "destructive",
         });
+        return;
       }
+
+      setNewVoter({ name: "", email: "", dob: "", city: "", state: "" });
+      setIsDialogOpen(false);
+      fetchVoters();
+  
     } catch (err) {
       console.error(err);
-      // Handle network errors or server crashes
       toast({
         title: "Error",
-        description: err.response?.data?.message || "Something went wrong.",
+        description: "Failed to register voter.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
-  const handleFileUpload = async () => {
+  
 
+  const handleFileUpload = async () => {
     if (!file) {
       toast({ title: "Error", description: "No file selected" });
       return;
     }
+  
     setIsUploadButtonLoading(true);
+  
     const formData = new FormData();
     formData.append("file", file);
-
+    formData.append("sendEmails", sendEmails);
+  
     try {
-      const res = await axios.post("http://localhost:5000/api/bulk-register", formData, {
+      const token = localStorage.getItem("adminToken");
+      const deviceId = localStorage.getItem("deviceId") || "";
+  
+      const response = await fetch("http://localhost:5000/api/bulk-register", {
+        method: "POST",
         headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
-          "device-id": localStorage.getItem("deviceId") || "",
+          Authorization: `Bearer ${token}`,
+          "device-id": deviceId
         },
+        body: formData,
       });
-
-      const data = res.data;
-      console.log(data);
+  
+      const data = await response.json();
+  
       if (data.Success) {
         toast({
           title: "Upload Success",
-          description: `Uploaded ${data.stats.registered}, Skipped ${data.stats.skipped} ${data.message} `,
+          description: sendEmails === 'yes' 
+            ? `Uploaded ${data.stats.registered} voters. Emails will be sent shortly.` 
+            : `Uploaded ${data.stats.registered} voters. No emails sent.`,
           variant: "default",
           duration: 5000,
         });
         setFile(null);
         setIsDialogOpen(false);
         fetchVoters();
-        setIsUploadButtonLoading(false);
-      } else if (data.message === "Voter Registration Phase is Closed...") {
-        toast({
-          title: "Error",
-          description: "Voter Registration Phase is Closed...",
-          variant: "destructive",
-        });
-        setIsUploadButtonLoading(false);
-        return;
-      } else {
+      } 
+      else {
         toast({ title: "Upload Failed", description: data.message });
+        return;
       }
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "Upload failed" });
+    } finally {
+      setIsUploadButtonLoading(false);
     }
   };
+  
 
   const filteredVoters = voters.filter((voter) => {
     const q = searchQuery.toLowerCase();
@@ -311,12 +264,11 @@ const VoterManagement = () => {
                 <div className="space-y-2">
                   <Label>Email</Label>
                   <Input
-                    placeholder="Full name"
+                    placeholder="Email address"
                     value={newVoter.email}
                     onChange={(e) => setNewVoter({ ...newVoter, email: e.target.value })}
                   />
                 </div>
-                
                 <div className="space-y-2">
                   <Label>Date of Birth</Label>
                   <Input
@@ -325,18 +277,18 @@ const VoterManagement = () => {
                     onChange={(e) => setNewVoter({ ...newVoter, dob: e.target.value })}
                   />
                 </div>
-                
                 <div className="space-y-2">
                   <Label>City</Label>
                   <Input
+                    placeholder="City"
                     value={newVoter.city}
                     onChange={(e) => setNewVoter({ ...newVoter, city: e.target.value })}
                   />
                 </div>
-                
                 <div className="space-y-2">
                   <Label>State</Label>
                   <Input
+                    placeholder="State"
                     value={newVoter.state}
                     onChange={(e) => setNewVoter({ ...newVoter, state: e.target.value })}
                   />
@@ -356,7 +308,6 @@ const VoterManagement = () => {
                     className="w-full sm:w-auto"
                   >
                     {isloading ? "Registering..." : "Register Voter"}
-                    {/* {isloading && <span className="ml-2 spinner-border" />} */}
                   </Button>
                 </DialogFooter>
               </TabsContent>
@@ -371,8 +322,21 @@ const VoterManagement = () => {
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
                   />
                 </div>
+                
+                <div className="space-y-2">
+                  <Label>Send confirmation emails to voters?</Label>
+                  <select
+                    value={sendEmails}
+                    onChange={(e) => setSendEmails(e.target.value as 'yes' | 'no')}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="yes">Yes, send confirmation emails</option>
+                    <option value="no">No, just register voters</option>
+                  </select>
+                </div>
+                
                 <div className="text-xs text-muted-foreground">
-                  File must include: voterId, name, dob, location (as JSON string or object).
+                  File must include: voterId, name, email, dob, city, state.
                 </div>
                 <DialogFooter className="flex flex-col sm:flex-row gap-2">
                   <Button 
@@ -389,7 +353,6 @@ const VoterManagement = () => {
                   >
                     <UploadCloud className="mr-2 h-4 w-4" />
                     {isuploadbuttonloading ? "Uploading..." : " Upload & Register"}
-                    {isuploadbuttonloading && <span className="ml-2 spinner-border" />}
                   </Button>
                 </DialogFooter>
               </TabsContent>
@@ -398,7 +361,7 @@ const VoterManagement = () => {
         </Dialog>
       </div>
 
-        <Card>
+      <Card>
         <CardHeader className="pb-2">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <CardTitle className="text-lg sm:text-xl">Registered Voters</CardTitle>
@@ -415,7 +378,6 @@ const VoterManagement = () => {
         </CardHeader>
         
         <CardContent>
-          {/* Search Bar */}
           <div className="flex mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -428,7 +390,6 @@ const VoterManagement = () => {
             </div>
           </div>
 
-          {/* Responsive Voter Display */}
           {useIsMobile ? (
             <div className="space-y-2">
               {filteredVoters.length === 0 ? (
@@ -476,7 +437,7 @@ const VoterManagement = () => {
                   {filteredVoters.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
-                        No voters found
+                        {isfetchingDataloading ? "Loading..." : "No voters found"}
                       </TableCell>
                     </TableRow>
                   ) : (

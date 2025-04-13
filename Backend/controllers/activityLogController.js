@@ -1,10 +1,9 @@
-// controllers/activityLogController.js
 import ActivityLog from "../models/ActivityLog.js";
 
 export const getActivityLogs = async (req, res) => {
   try {
     const adminId = req.admin._id;
-    console.log(adminId)
+    // console.log(adminId)
     const { page = 1, limit = 20 } = req.query;
     
     const logs = await ActivityLog.find({ userId: adminId })

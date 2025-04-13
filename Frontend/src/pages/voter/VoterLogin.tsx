@@ -25,11 +25,14 @@ const VoterLogin = () => {
     e.preventDefault();
     setIsLoading(true);
 
+
     try {
       const res = await fetch("http://localhost:5000/api/voter-login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          "device-id": localStorage.getItem("deviceId"),
         },
         body: JSON.stringify({ voterId }),
       });

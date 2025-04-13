@@ -1,12 +1,42 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, ClipboardList, Settings, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import axios from "axios";
+
 
 interface AdminSidebarProps {
   onNavigate?: () => void;
 }
 
 export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
+  const [admin, setAdmin] = useState(null);
+  const token = localStorage.getItem("adminToken");
+  const deviceId = localStorage.getItem("deviceId");
+
+  useEffect(() => {
+    const fetchAdmin = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/get-details", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "device-id": deviceId,
+          },
+        });
+
+        if (res.data.Success) {
+          setAdmin(res.data.adminDetails[0]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch admin:", err);
+      }
+    };
+
+    fetchAdmin();
+  }, [token, deviceId]);
+
+
+
   return (
     <div className="h-full flex flex-col bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))]">
       {/* Header */}
@@ -26,6 +56,7 @@ export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
             Dashboard
           </NavItem>
           <NavItem href="/admin/voters" icon={Users} onClick={onNavigate}>
+
             Voters
           </NavItem>
           <NavItem href="/admin/candidates" icon={ClipboardList} onClick={onNavigate}>
@@ -44,11 +75,11 @@ export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
       <div className="border-t border-[hsl(var(--sidebar-border))] px-6 py-3">
         <div className="flex items-center">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]">
-            A
+            <img src={admin?.profile} alt="Profile" className="rounded-full" />
           </div>
           <div className="ml-3">
-            <p className="text-xs">Admin User</p>
-            <p className="text-xs text-muted-foreground">admin@BlockVote.org</p>
+            <p className="text-xs">{admin?.name}</p>
+            <p className="text-xs">{admin?.email}</p>
           </div>
         </div>
       </div>

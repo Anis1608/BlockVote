@@ -1,12 +1,13 @@
 import StellarSdk from "stellar-sdk";
 import Candidate from "../models/Candidate.js";
 import AdminData from "../models/Admin.js";
+import "dotenv/config"
 import axios from "axios";
 import { Parser } from 'json2csv';
 import moment from "moment";
 import fs from 'fs';
 
-const STELLAR_SERVER = "https://horizon-testnet.stellar.org";
+const STELLAR_SERVER = process.env.STELLAR_SERVER; // Stellar Testnet link
 const server = new StellarSdk.Server(STELLAR_SERVER);
 export const getCandidateVotesbyadminforPublc = async (req, res) => {
     try {

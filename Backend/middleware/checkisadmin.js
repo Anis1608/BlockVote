@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken';
 import redis from '../redisClient.js';
 import AdminData from '../models/Admin.js';
+import "dotenv/config"
 
-const SECRET_KEY = "anis";
+const SECRET_KEY = process.env.SECRET_KEY;
 const SESSION_TTL = 7200; 
 
 export const isadmin = async (req, res, next) => {

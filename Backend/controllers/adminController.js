@@ -6,6 +6,7 @@ import VoterData from "../models/Voter.js";
 import StellarSdk from "stellar-sdk";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
+import "dotenv/config";
 import redis from "../redisClient.js";
 import {
   generateOTP,
@@ -17,7 +18,7 @@ import {
 import { logActivity } from "../middleware/activityLogger.js";
 
 
-const SECRET_KEY = "anis";
+const SECRET_KEY = process.env.SECRET_KEY;
 
 // ============================== ADMIN AUTH ==============================
 
@@ -165,7 +166,7 @@ export const verifyLoginOTP = async (req, res) => {
 
 export const getalladminsID = async (req, res) => {
   try {
-    const admins = await AdminData.find({}).select("_id name");
+    const admins = await AdminData.find({}).select("_id name walletAddress currentPhase");
     if (!admins || admins.length === 0) {
       return res.status(404).json({ message: "No Admin Found", Success: false });
     }
@@ -315,7 +316,7 @@ export const Register_Voter = async (req, res) => {
     location,
   });
   await logActivity(req, "voter_registration", "success", { name });
-  console.log(voterDetails.voterId)
+  // console.log(voterDetails.voterId)
   await sendVoterIdonEmail(voterDetails.email, voterDetails.voterId);
   res.status(200).json({ message: "Voter Registered Successfully...", Success: true, voterDetails });
 };

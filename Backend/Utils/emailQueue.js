@@ -34,20 +34,69 @@ emailQueue.process(2, async (job) => {
       to: voter.email,
       subject: 'Your Voter Registration Confirmation',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #2c3e50;">Voter Registration Successful</h1>
-          <p>Dear ${voter.name},</p>
-          <p>Your voter registration has been successfully processed.</p>
-          <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>Voter ID:</strong> ${voter.voterId}</p>
-          </div>
-          <p>Please keep this information safe as it will be required for voting.</p>
-          <p>Thank you for registering.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-          <p style="font-size: 12px; color: #777;">
-            If you didn't request this registration, please contact our support team.
-          </p>
-        </div>
+       <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+  <!-- Header with BlockVote Logo -->
+  <div style="background: linear-gradient(135deg, #4a6bff, #6a11cb); padding: 25px; text-align: center;">
+    <img src="https://blockvote.example.com/logo.png" alt="BlockVote Logo" style="height: 50px; margin-bottom: 15px;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Voter Registration Confirmed</h1>
+  </div>
+  
+  <!-- Content Area -->
+  <div style="padding: 25px; background: #ffffff;">
+    <p style="font-size: 16px; color: #555; line-height: 1.6;">Dear ${voter.name},</p>
+    <p style="font-size: 16px; color: #555; line-height: 1.6;">Congratulations! Your registration with <strong>BlockVote</strong> has been successfully processed.</p>
+    
+    <!-- Voter ID Card -->
+    <div style="background: linear-gradient(to right, #f8f9fa, #e9ecef); 
+                padding: 20px; 
+                border-radius: 8px; 
+                margin: 25px 0;
+                border-left: 4px solid #4a6bff;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <h3 style="color: #4a6bff; margin-top: 0;">Your Voter Credentials</h3>
+      <table style="width: 100%;">
+        <tr>
+          <td style="width: 30%; color: #777;">Voter ID:</td>
+          <td style="font-weight: bold;">${voter.voterId}</td>
+        </tr>
+        <tr>
+          <td style="color: #777;">Registered On:</td>
+          <td>${new Date().toLocaleDateString()}</td>
+        </tr>
+      </table>
+    </div>
+    
+    <p style="font-size: 16px; color: #555; line-height: 1.6;">
+      Please keep this information secure as it will be required for voting in upcoming elections.
+    </p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="https://blockvote.example.com/dashboard" 
+         style="display: inline-block; 
+                background: #4a6bff; 
+                color: white; 
+                padding: 12px 25px; 
+                text-decoration: none; 
+                border-radius: 4px; 
+                font-weight: bold;
+                box-shadow: 0 2px 5px rgba(74, 107, 255, 0.3);">
+        Go to Voter Dashboard
+      </a>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #777; border-top: 1px solid #e0e0e0;">
+    <p style="margin: 0 0 10px 0;">
+      <a href="https://blockvote.site" style="color: #4a6bff; text-decoration: none;">BlockVote</a> | 
+      <a href="https://blockvote.site" style="color: #4a6bff; text-decoration: none;">Help Center</a> | 
+      <a href="https://blockvote.site" style="color: #4a6bff; text-decoration: none;">Contact Us</a>
+    </p>
+    <p style="margin: 0; font-size: 12px;">
+      If you didn't request this registration, please <a href="mailto:support@blockvote.example.com" style="color: #4a6bff;">contact our support team</a> immediately.
+    </p>
+  </div>
+</div>
       `,
     };
 

@@ -39,9 +39,10 @@ interface CandidateResult {
 }
 
 interface Admin {
+  _id: string;
   name: string;
   walletAddress: string;
-  _id: string;
+  currentPhase: 'Registration' | 'Voting' | 'Result' | 'Selection Pending';
 }
 
 export default function PublicResultPage() {
@@ -55,7 +56,7 @@ export default function PublicResultPage() {
 
   useEffect(() => {
     axios
-      .get("http://192.168.0.103:5000/api/admins")
+      .get("http://localhost:5000/api/admins")
       .then((res) => setAdmins(res.data.admins))
       .catch(console.error);
   }, []);
@@ -68,7 +69,7 @@ export default function PublicResultPage() {
     setPhaseMessage(null);
 
     axios
-      .get(`http://192.168.0.103:5000/api/public-result?adminId=${selectedAdmin._id}`)
+      .get(`http://localhost:5000/api/public-result?adminId=${selectedAdmin._id}`)
       .then((res) => {
         if (res.data.success === false && res.data.message) {
           if (res.data.message.includes("Registration Phase is in Progress...")) {
@@ -154,7 +155,20 @@ export default function PublicResultPage() {
           <SelectContent>
             {admins.map((admin) => (
               <SelectItem key={admin._id} value={admin._id}>
-                {admin.name}
+                <div className="flex items-center gap-2">
+                  <span>{admin.name}</span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    admin.currentPhase === 'Registration' 
+                      ? 'bg-red-100 text-red-800' 
+                      : admin.currentPhase === 'Voting' 
+                        ? 'bg-yellow-100 text-yellow-800' 
+                        : admin.currentPhase === 'Result'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {admin.currentPhase.toUpperCase()}
+                  </span>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
