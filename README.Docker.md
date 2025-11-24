@@ -1,137 +1,114 @@
-# Docker Deployment Guide - Blockchain Voting System
+# Docker Deployment Guide - BlockVote (Cloud MongoDB & Redis)
 
-This guide explains how to deploy the Blockchain Voting System using Docker and Docker Compose.
+This guide is for deploying BlockVote using Docker when you're using **cloud-hosted MongoDB and Redis**.
 
 ## Prerequisites
 
 - Docker Engine 20.10 or higher
 - Docker Compose 2.0 or higher
-- At least 4GB of available RAM
-- At least 10GB of available disk space
+- Cloud MongoDB (MongoDB Atlas) account
+- Cloud Redis account
 
 ## Quick Start
 
-### 1. Environment Setup
+### 1. Create Environment File
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory with your cloud credentials:
 
 ```bash
-cp .env.example .env
+# Copy from your Backend/.env or create new
+cp Backend/.env .env
 ```
 
-Edit the `.env` file and add your configuration:
+Your `.env` should contain:
 
 ```env
+# MongoDB Cloud (MongoDB Atlas)
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/blockvote
+
+# Redis Cloud
+REDIS_URL=redis://default:password@your-redis-host:port
+
+# JWT Secret
+SECRET_KEY=your-secret-key
+
+# Email Configuration
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASSWORD=your-app-password
-SECRET_KEY=your-secret-key-here
+
+# Stellar Blockchain
 STELLAR_SERVER=https://horizon-testnet.stellar.org
+
+# Frontend API URL
+VITE_API_URL=http://localhost:5000
 ```
 
-### 2. Build and Start All Services
+### 2. Build and Start Services
 
 ```bash
+# Build and start Backend + Frontend only
 docker-compose up -d
-```
 
-This command will:
-- Build the Backend and Frontend Docker images
-- Pull MongoDB and Redis images
-- Create a dedicated network for all services
-- Start all containers in detached mode
+# View logs
+docker-compose logs -f
+
+# Check status
+docker-compose ps
+```
 
 ### 3. Access the Application
 
 - **Frontend**: http://localhost
 - **Backend API**: http://localhost:5000/api
-- **MongoDB**: localhost:27017
-- **Redis**: localhost:6379
 
-### 4. View Logs
+## What's Included
+
+This Docker setup includes **only**:
+
+✅ **Backend** (Node.js API) - Port 5000  
+✅ **Frontend** (React + Nginx) - Port 80
+
+**NOT Included** (using your cloud services):
+
+❌ MongoDB (using MongoDB Atlas)  
+❌ Redis (using Redis Cloud)
+
+## Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         Docker Containers               │
+│  ┌──────────┐      ┌──────────┐        │
+│  │ Frontend │      │ Backend  │        │
+│  │  (Nginx) │─────▶│(Node.js) │        │
+│  │  Port 80 │      │ Port 5000│        │
+│  └──────────┘      └────┬─────┘        │
+└─────────────────────────┼───────────────┘
+                          │
+                          │ Internet
+                          │
+         ┌────────────────┴────────────────┐
+         │                                 │
+    ┌────▼─────┐                  ┌───────▼────┐
+    │ MongoDB  │                  │   Redis    │
+    │  Atlas   │                  │   Cloud    │
+    │ (Cloud)  │                  │  (Cloud)   │
+    └──────────┘                  └────────────┘
+```
+
+## Useful Commands
+
+### View Logs
 
 ```bash
 # All services
 docker-compose logs -f
 
-# Specific service
+# Backend only
 docker-compose logs -f backend
+
+# Frontend only
 docker-compose logs -f frontend
-docker-compose logs -f mongodb
-docker-compose logs -f redis
-```
-
-### 5. Stop All Services
-
-```bash
-docker-compose down
-```
-
-To also remove volumes (database data):
-
-```bash
-docker-compose down -v
-```
-
-## Service Details
-
-### MongoDB
-- **Image**: mongo:7.0
-- **Port**: 27017
-- **Credentials**: 
-  - Username: `admin`
-  - Password: `blockvote_admin_2024`
-- **Volume**: `mongodb_data` (persistent storage)
-
-### Redis
-- **Image**: redis:7-alpine
-- **Port**: 6379
-- **Password**: `blockvote_redis_2024`
-- **Volume**: `redis_data` (persistent storage)
-
-### Backend
-- **Build**: ./Backend/Dockerfile
-- **Port**: 5000
-- **Dependencies**: MongoDB, Redis
-- **Volume**: `backend_uploads` (for file uploads)
-
-### Frontend
-- **Build**: ./Frontend/Dockerfile (multi-stage with nginx)
-- **Port**: 80
-- **Dependencies**: Backend
-
-## Development vs Production
-
-### Development Mode
-
-For development, continue using your existing setup:
-
-```bash
-# Backend
-cd Backend
-npm install
-nodemon index
-
-# Frontend
-cd Frontend
-npm install
-npm run dev
-```
-
-### Production Mode
-
-Use Docker Compose for production deployment as described above.
-
-## Useful Commands
-
-### Rebuild Services
-
-```bash
-# Rebuild all services
-docker-compose build
-
-# Rebuild specific service
-docker-compose build backend
-docker-compose build frontend
 ```
 
 ### Restart Services
@@ -140,8 +117,31 @@ docker-compose build frontend
 # Restart all
 docker-compose restart
 
-# Restart specific service
+# Restart backend only
 docker-compose restart backend
+```
+
+### Stop Services
+
+```bash
+# Stop all containers
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+```
+
+### Rebuild After Code Changes
+
+```bash
+# Rebuild all
+docker-compose up -d --build
+
+# Rebuild backend only
+docker-compose up -d --build backend
+
+# Rebuild frontend only
+docker-compose up -d --build frontend
 ```
 
 ### Execute Commands in Containers
@@ -150,108 +150,127 @@ docker-compose restart backend
 # Access backend shell
 docker-compose exec backend sh
 
-# Access MongoDB shell
-docker-compose exec mongodb mongosh -u admin -p blockvote_admin_2024
-
-# Access Redis CLI
-docker-compose exec redis redis-cli -a blockvote_redis_2024
+# Check backend environment variables
+docker-compose exec backend env | grep MONGO
 ```
 
-### Check Service Health
+## Troubleshooting
+
+### Backend Can't Connect to MongoDB
+
+1. Check your MongoDB Atlas connection string:
+   ```bash
+   docker-compose exec backend env | grep MONGO_URI
+   ```
+
+2. Verify MongoDB Atlas allows connections from anywhere (0.0.0.0/0) or add Docker host IP
+
+3. Check backend logs:
+   ```bash
+   docker-compose logs backend | grep -i mongo
+   ```
+
+### Backend Can't Connect to Redis
+
+1. Check Redis URL:
+   ```bash
+   docker-compose exec backend env | grep REDIS_URL
+   ```
+
+2. Verify Redis Cloud allows external connections
+
+3. Check backend logs:
+   ```bash
+   docker-compose logs backend | grep -i redis
+   ```
+
+### Port Already in Use
+
+If port 80 or 5000 is already in use, modify `docker-compose.yml`:
+
+```yaml
+ports:
+  - "8080:80"  # Frontend on port 8080
+  - "5001:5000"  # Backend on port 5001
+```
+
+### Environment Variables Not Loading
+
+Make sure `.env` file is in the **root directory** (same level as `docker-compose.yml`):
+
+```
+Blockchain_Voting/
+├── .env                    ← Here!
+├── docker-compose.yml
+├── Backend/
+└── Frontend/
+```
+
+## Production Deployment
+
+### Security Checklist
+
+- [ ] Change all default passwords
+- [ ] Use strong `SECRET_KEY`
+- [ ] Enable MongoDB Atlas IP whitelist
+- [ ] Enable Redis authentication
+- [ ] Set up SSL/TLS (use nginx-proxy or Caddy)
+- [ ] Configure firewall rules
+- [ ] Set up automated backups
+- [ ] Use environment-specific `.env` files
+
+### Recommended: Use Docker Secrets
+
+For production, use Docker secrets instead of `.env`:
+
+```yaml
+secrets:
+  mongo_uri:
+    external: true
+  redis_url:
+    external: true
+```
+
+## Monitoring
+
+### Check Container Health
 
 ```bash
 docker-compose ps
 ```
 
-### View Resource Usage
+Healthy output:
+```
+NAME                    STATUS
+blockvote-backend       Up (healthy)
+blockvote-frontend      Up (healthy)
+```
+
+### Resource Usage
 
 ```bash
 docker stats
 ```
 
-## Troubleshooting
+## Backup Strategy
 
-### Port Already in Use
+Since you're using cloud services:
 
-If you get port conflicts, modify the port mappings in `docker-compose.yml`:
-
-```yaml
-ports:
-  - "8080:80"  # Frontend on port 8080 instead of 80
-  - "5001:5000"  # Backend on port 5001 instead of 5000
-```
-
-### Database Connection Issues
-
-1. Check if MongoDB is healthy:
-   ```bash
-   docker-compose ps mongodb
-   ```
-
-2. View MongoDB logs:
-   ```bash
-   docker-compose logs mongodb
-   ```
-
-3. Verify connection string in backend logs:
-   ```bash
-   docker-compose logs backend | grep -i mongo
-   ```
-
-### Frontend Not Loading
-
-1. Check nginx logs:
-   ```bash
-   docker-compose logs frontend
-   ```
-
-2. Verify the build completed successfully:
-   ```bash
-   docker-compose build frontend
-   ```
-
-### Clear Everything and Start Fresh
-
-```bash
-# Stop and remove containers, networks, and volumes
-docker-compose down -v
-
-# Remove images
-docker-compose down --rmi all
-
-# Rebuild and start
-docker-compose up -d --build
-```
-
-## Production Deployment Checklist
-
-- [ ] Update all passwords in `.env` file
-- [ ] Use strong `SECRET_KEY`
-- [ ] Configure proper email credentials
-- [ ] Set up SSL/TLS certificates (use nginx-proxy or traefik)
-- [ ] Configure firewall rules
-- [ ] Set up automated backups for MongoDB
-- [ ] Configure log rotation
-- [ ] Set up monitoring (Prometheus, Grafana)
-- [ ] Use production MongoDB URI if using cloud database
-- [ ] Use production Redis URI if using cloud cache
-
-## Backup and Restore
-
-### Backup MongoDB
-
-```bash
-docker-compose exec mongodb mongodump --username admin --password blockvote_admin_2024 --authenticationDatabase admin --out /data/backup
-docker cp blockvote-mongodb:/data/backup ./backup
-```
-
-### Restore MongoDB
-
-```bash
-docker cp ./backup blockvote-mongodb:/data/backup
-docker-compose exec mongodb mongorestore --username admin --password blockvote_admin_2024 --authenticationDatabase admin /data/backup
-```
+- **MongoDB**: Use MongoDB Atlas automated backups
+- **Redis**: Use Redis Cloud persistence settings
+- **Uploads**: Backup the Docker volume:
+  ```bash
+  docker run --rm -v blockvote_backend_uploads:/data -v $(pwd):/backup alpine tar czf /backup/uploads-backup.tar.gz -C /data .
+  ```
 
 ## Support
 
-For issues or questions, please refer to the main README.md or contact the development team.
+For issues:
+1. Check logs: `docker-compose logs -f`
+2. Verify cloud service connectivity
+3. Check `.env` file configuration
+4. Review main [README.md](README.md)
+
+---
+
+**Note**: This setup is optimized for deployments using cloud-hosted databases. If you want to run MongoDB and Redis locally with Docker, see the full `docker-compose.yml` with database services.
