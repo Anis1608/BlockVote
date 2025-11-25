@@ -28,7 +28,6 @@ const AdminRegister = () => {
 
   const navigate = useNavigate();
   const { toast } = useToast();
-  const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
 
   const uploadToCloudinary = async (file: File): Promise<string | null> => {
     const formData = new FormData();
@@ -65,7 +64,7 @@ const AdminRegister = () => {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${Backend_URL}/api/admin-register`, {
+      const res = await fetch("https://blockvote.site/api/admin-register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -105,7 +104,7 @@ const AdminRegister = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${Backend_URL}/api/verify-register-otp`, {
+      const response = await fetch("https://blockvote.site/api/verify-register-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),

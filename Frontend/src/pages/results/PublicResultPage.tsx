@@ -54,11 +54,9 @@ export default function PublicResultPage() {
   const [loading, setLoading] = useState(false);
   const [phaseMessage, setPhaseMessage] = useState<{text: string, type: 'registration' | 'voting' | null} | null>(null);
 
-  const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
-
   useEffect(() => {
     axios
-      .get(`${Backend_URL}/api/admins`)
+      .get("https://blockvote.site/api/admins")
       .then((res) => setAdmins(res.data.admins))
       .catch(console.error);
   }, []);
@@ -71,7 +69,7 @@ export default function PublicResultPage() {
     setPhaseMessage(null);
 
     axios
-      .get(`${Backend_URL}/api/public-result?adminId=${selectedAdmin._id}`)
+      .get(`https://blockvote.site/api/public-result?adminId=${selectedAdmin._id}`)
       .then((res) => {
         if (res.data.success === false && res.data.message) {
           if (res.data.message.includes("Registration Phase is in Progress...")) {

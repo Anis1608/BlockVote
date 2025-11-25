@@ -60,7 +60,17 @@ tmp/
 temp/
 *.tmp
 
+# Jenkins & CI/CD
+.jenkins/
+jenkins-workspace/
+.scannerwork/
+.sonar/
+coverage/
+test-results/
+*.tgz
+
 # Git submodules (if Backend/Frontend were submodules)
 # Remove these lines if not using submodules
 Backend/.git/
 Frontend/.git/
+

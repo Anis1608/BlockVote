@@ -50,12 +50,10 @@ const AdminLayout = () => {
   const currentDeviceId = localStorage.getItem("deviceId");
   const { toast } = useToast();
 
-  const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
-
   useEffect(() => {
     if (isProfileOpen) {
       const token = localStorage.getItem("adminToken");
-      axios.get(`${Backend_URL}/api/get-details`, {
+      axios.get("https://blockvote.site/api/get-details", {
         headers: {
           Authorization: `Bearer ${token}`,
           "device-id": currentDeviceId,
@@ -69,7 +67,7 @@ const AdminLayout = () => {
   useEffect(() => {
     if (isDeviceDialogOpen) {
       const token = localStorage.getItem("adminToken");
-      axios.get(`${Backend_URL}/api/get-active-devices`, {
+      axios.get("https://blockvote.site/api/get-active-devices", {
         headers: {
           Authorization: `Bearer ${token}`,
           "device-id": currentDeviceId,
@@ -86,7 +84,7 @@ const AdminLayout = () => {
     
     try {
       const res = await axios.post(
-        `${Backend_URL}/api/request-device-logout`,
+        "https://blockvote.site/api/request-device-logout",
         { deviceId },
         {
           headers: {
@@ -120,7 +118,7 @@ const AdminLayout = () => {
     setIsProcessing(true);
     try {
       const res = await axios.post(
-        `${Backend_URL}/api/verify-logout-otp`,
+        "https://blockvote.site/api/verify-logout-otp",
         { deviceId: logoutDeviceId, otp },
         {
           headers: {
@@ -322,10 +320,7 @@ const AdminLayout = () => {
                   </div>
                 ))
               ) : (
-                <div className="flex items-center justify-center p-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
-                  <span className="ml-2">Loading devices...</span>
-                </div>     
+                <p>No devices logged in.</p>
               )}
             </div>
           </DialogContent>

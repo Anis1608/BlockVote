@@ -5,8 +5,6 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 
-const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
-
 interface AdminSidebarProps {
   onNavigate?: () => void;
 }
@@ -19,7 +17,7 @@ export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
   useEffect(() => {
     const fetchAdmin = async () => {
       try {
-        const res = await axios.get(`${Backend_URL}/api/get-details`, {
+        const res = await axios.get("https://blockvote.site/api/get-details", {
           headers: {
             Authorization: `Bearer ${token}`,
             "device-id": deviceId,

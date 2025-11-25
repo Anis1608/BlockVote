@@ -38,22 +38,12 @@ interface Voter {
   _id: string;
   voterId: string;
   name: string;
-  email: string;
   dob: string;
   location: {
     city: string;
     state: string;
   };
   voteCast: boolean;
-  admin: string;
-  __v?: number;
-}
-
-interface Pagination {
-  page: number;
-  limit: number;
-  totalVoters: number;
-  totalPages: number;
 }
 
 const VoterManagement = () => {
@@ -64,8 +54,6 @@ const VoterManagement = () => {
   const [isloading, setIsLoading] = useState(false);
   const [isuploadbuttonloading, setIsUploadButtonLoading] = useState(false);
   const [isfetchingDataloading, setisfetchingDataloading] = useState(false);
-
-  const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
   const [newVoter, setNewVoter] = useState({
     name: "",
     email: "",
@@ -74,48 +62,28 @@ const VoterManagement = () => {
     state: "",
   });
   const [sendEmails, setSendEmails] = useState<'yes' | 'no'>('yes');
-  const [pagination, setPagination] = useState<Pagination>({
-    page: 1,
-    limit: 10,
-    totalVoters: 0,
-    totalPages: 1
-  });
 
   const axios = useAxios();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     const adminToken = localStorage.getItem("adminToken");
     if (!adminToken) navigate("/login");
   }, [navigate]);
 
-  const fetchVoters = async (page = 1, search = "") => {
+  const fetchVoters = async () => {
     setisfetchingDataloading(true);
     try {
-      const endpoint = search 
-        ? `${Backend_URL}/api/search?query=${search}&page=${page}&limit=${pagination.limit}`
-        : `${Backend_URL}/api/allvoter?page=${page}&limit=${pagination.limit}`;
-  
-      const res = await axios.get(endpoint, {
+      const res = await axios.get("https://blockvote.site/api/allvoter", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
           "device-id": localStorage.getItem("deviceId") || "",
         },
       });
-  
+
       const data = res.data;
-      if (data.Success) {
-        setVoters(data.data || []);
-        setPagination({
-          page: data.pagination.page,
-          limit: data.pagination.limit,
-          totalVoters: data.pagination.totalVoters,
-          totalPages: data.pagination.totalPages
-        });
-      } else {
-        toast({ title: "Error", description: data.message });
-      }
+      if (data.Success) setVoters(data.getDetails);
+      else toast({ title: "Error", description: data.message });
     } catch (err) {
       console.error(err);
       toast({ title: "Server Error", description: "Failed to fetch voters." });
@@ -125,17 +93,8 @@ const VoterManagement = () => {
   };
 
   useEffect(() => {
-    // Debounce search
-    const timer = setTimeout(() => {
-      fetchVoters(1, searchQuery);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  useEffect(() => {
     fetchVoters();
-  }, [pagination.limit]);
+  }, []);
 
   const handleRegisterVoter = async () => {
     const voterId = `VOTER${Math.floor(1000 + Math.random() * 9000)}`;
@@ -157,7 +116,7 @@ const VoterManagement = () => {
       const token = localStorage.getItem("adminToken");
       const deviceId = localStorage.getItem("deviceId") || "";
   
-      const response = await fetch(`${Backend_URL}/api/register-voter`, {
+      const response = await fetch("https://blockvote.site/api/register-voter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -175,16 +134,20 @@ const VoterManagement = () => {
           variant: "default",
           duration: 3000,
         });
-        setNewVoter({ name: "", email: "", dob: "", city: "", state: "" });
-        setIsDialogOpen(false);
-        fetchVoters(pagination.page, searchQuery);
-      } else {
+      }
+      else {
         toast({
           title: "Registration failed",
           description: data.message,
           variant: "destructive",
         });
+        return;
       }
+
+      setNewVoter({ name: "", email: "", dob: "", city: "", state: "" });
+      setIsDialogOpen(false);
+      fetchVoters();
+  
     } catch (err) {
       console.error(err);
       toast({
@@ -197,6 +160,7 @@ const VoterManagement = () => {
     }
   };
   
+
   const handleFileUpload = async () => {
     if (!file) {
       toast({ title: "Error", description: "No file selected" });
@@ -213,7 +177,7 @@ const VoterManagement = () => {
       const token = localStorage.getItem("adminToken");
       const deviceId = localStorage.getItem("deviceId") || "";
   
-      const response = await fetch(`${Backend_URL}/api/bulk-register`, {
+      const response = await fetch("https://blockvote.site/api/bulk-register", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -235,9 +199,11 @@ const VoterManagement = () => {
         });
         setFile(null);
         setIsDialogOpen(false);
-        fetchVoters(pagination.page, searchQuery);
-      } else {
+        fetchVoters();
+      } 
+      else {
         toast({ title: "Upload Failed", description: data.message });
+        return;
       }
     } catch (err) {
       console.error(err);
@@ -246,6 +212,17 @@ const VoterManagement = () => {
       setIsUploadButtonLoading(false);
     }
   };
+  
+
+  const filteredVoters = voters.filter((voter) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      voter.name.toLowerCase().includes(q) ||
+      voter.voterId.toLowerCase().includes(q) ||
+      voter.location.city.toLowerCase().includes(q) ||
+      voter.location.state.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="space-y-6 p-4 animate-in">
@@ -274,6 +251,7 @@ const VoterManagement = () => {
                 <TabsTrigger value="upload">Upload File</TabsTrigger>
               </TabsList>
 
+              {/* MANUAL ENTRY */}
               <TabsContent value="manual" className="space-y-4">
                 <div className="space-y-2">
                   <Label>Name</Label>
@@ -334,6 +312,7 @@ const VoterManagement = () => {
                 </DialogFooter>
               </TabsContent>
 
+              {/* FILE UPLOAD */}
               <TabsContent value="upload" className="space-y-4">
                 <div className="space-y-2">
                   <Label>Upload .xlsx or .csv File</Label>
@@ -389,7 +368,7 @@ const VoterManagement = () => {
             <div className="flex gap-2 items-center w-full sm:w-auto">
               <div className="flex items-center rounded-md border px-3 py-1 text-sm w-full sm:w-auto">
                 <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                Total: {pagination.totalVoters}
+                Total: {voters.length}
               </div>
               <Button variant="outline" size="icon" className="shrink-0">
                 <Filter className="h-4 w-4" />
@@ -399,7 +378,7 @@ const VoterManagement = () => {
         </CardHeader>
         
         <CardContent>
-          <div className="flex gap-2 mb-4">
+          <div className="flex mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -409,29 +388,14 @@ const VoterManagement = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            
-            <select
-              value={pagination.limit}
-              onChange={(e) => {
-                setPagination(prev => ({...prev, limit: Number(e.target.value)}));
-              }}
-              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="10">10 per page</option>
-              <option value="25">25 per page</option>
-              <option value="50">50 per page</option>
-              <option value="100">100 per page</option>
-            </select>
           </div>
 
-          {isMobile ? (
+          {useIsMobile ? (
             <div className="space-y-2">
-              {voters.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">
-                  {isfetchingDataloading ? "Loading..." : "No voters found"}
-                </p>
+              {filteredVoters.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">{isfetchingDataloading ? "Loading Please Wait..." : "No Voter Data Found"}</p>
               ) : (
-                voters.map((voter) => (
+                filteredVoters.map((voter) => (
                   <Card key={voter._id} className="p-4">
                     <div className="space-y-2">
                       <div className="flex justify-between">
@@ -463,7 +427,6 @@ const VoterManagement = () => {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Voter ID</TableHead>
-                    <TableHead>Email</TableHead>
                     <TableHead>City</TableHead>
                     <TableHead>State</TableHead>
                     <TableHead>Date of Birth</TableHead>
@@ -471,18 +434,17 @@ const VoterManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {voters.length === 0 ? (
+                  {filteredVoters.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-4">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
                         {isfetchingDataloading ? "Loading..." : "No voters found"}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    voters.map((voter) => (
+                    filteredVoters.map((voter) => (
                       <TableRow key={voter._id}>
                         <TableCell className="py-2">{voter.name}</TableCell>
                         <TableCell className="py-2">{voter.voterId}</TableCell>
-                        <TableCell className="py-2">{voter.email}</TableCell>
                         <TableCell className="py-2">{voter.location.city}</TableCell>
                         <TableCell className="py-2">{voter.location.state}</TableCell>
                         <TableCell className="py-2">
@@ -506,28 +468,9 @@ const VoterManagement = () => {
           )}
         </CardContent>
         
-        <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <CardFooter className="justify-between">
           <div className="text-xs text-muted-foreground">
-            Showing {voters.length} of {pagination.totalVoters} voters (Page {pagination.page} of {pagination.totalPages})
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page <= 1 || isfetchingDataloading}
-              onClick={() => fetchVoters(pagination.page - 1, searchQuery)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page >= pagination.totalPages || isfetchingDataloading}
-              onClick={() => fetchVoters(pagination.page + 1, searchQuery)}
-            >
-              Next
-            </Button>
+            Showing {filteredVoters.length} of {voters.length} voters
           </div>
         </CardFooter>
       </Card>

@@ -57,13 +57,11 @@ export function ElectionPhaseSelector() {
   const { toast } = useToast();
   const axios = useAxios();
 
-  const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
-
   // Fetch current phase from backend
   useEffect(() => {
     const fetchPhase = async () => {
       try {
-        const res = await axios.get(`${Backend_URL}/api/get-current-phase`, {
+        const res = await axios.get("https://blockvote.site/api/get-current-phase", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
             "device-id": localStorage.getItem("deviceId"),
@@ -96,7 +94,7 @@ export function ElectionPhaseSelector() {
     try {
       setIsSendingOtp(true);
       const response = await axios.post(
-        "http://localhost:5000/api/changephase",
+        "https://blockvote.site/api/changephase",
         { currentPhase: pendingPhase },
         {
           headers: {
@@ -130,7 +128,7 @@ export function ElectionPhaseSelector() {
     try {
       setIsVerifyingOtp(true);
       const response = await axios.post(
-        "http://localhost:5000/api/changephase/verify",
+        "https://blockvote.site/api/changephase/verify",
         { otp },
         {
           headers: {

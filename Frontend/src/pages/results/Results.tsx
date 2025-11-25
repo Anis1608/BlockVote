@@ -46,15 +46,13 @@ export default function AdminResults() {
   const [flash, setFlash] = useState(false);
   const walletAddress = typeof window !== 'undefined' ? localStorage.getItem("walletAddress") : "";
 
-  const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
-
   const fetchCurrentPhase = async () => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem("adminToken") : "";
       const deviceId = typeof window !== 'undefined' ? localStorage.getItem("deviceId") : "";
       
       const response = await axios.get(
-        `${Backend_URL}/api/get-current-phase`,
+        "https://blockvote.site/api/get-current-phase",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -78,7 +76,7 @@ export default function AdminResults() {
       const deviceId = typeof window !== 'undefined' ? localStorage.getItem("deviceId") : "";
       
       const response = await axios.get(
-        `${Backend_URL}/api/admin-result`,
+        "https://blockvote.site/api/admin-result",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -151,7 +149,7 @@ export default function AdminResults() {
       const token = typeof window !== 'undefined' ? localStorage.getItem("adminToken") : "";
       const deviceId = typeof window !== 'undefined' ? localStorage.getItem("deviceId") : "";
       
-      const response = await fetch(`${Backend_URL}/api/downloadStellar`, {
+      const response = await fetch("https://blockvote.site/api/downloadStellar", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

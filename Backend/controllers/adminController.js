@@ -100,8 +100,7 @@ export const AdminLogin = async (req, res) => {
     return res.status(400).json({ message: "Something is Missing...", Success: false });
   }
 
-  const checkAdmin = await AdminData.findOne({ id_no , email });
-  // console.log(checkAdmin)
+  const checkAdmin = await AdminData.findOne({ id_no });
   if (!checkAdmin) {
     return res.status(400).json({ message: "Admin Not Found...", Success: false });
   }
@@ -325,87 +324,17 @@ export const Register_Voter = async (req, res) => {
 export const getvoterDetails = async (req, res) => {
   try {
     const adminId = req.admin._id;
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    // Fetch paginated voters
-    const getDetails = await VoterData.find({ admin: adminId })
-      .skip(skip)
-      .limit(limit);
-
-    // Total voters for this admin
-    const totalVoters = await VoterData.countDocuments({ admin: adminId });
+    const getDetails = await VoterData.find({ admin: adminId });
 
     if (!getDetails || getDetails.length === 0) {
-      return res.status(400).json({
-        message: "No Voter Found for this Admin...",
-        Success: false,
-      });
+      return res.status(400).json({ message: "No Voter Found for this Admin...", Success: false });
     }
-
-    res.status(200).json({
-      message: "All Voters for this Admin...",
-      Success: true,
-      data: getDetails,
-      pagination: {
-        page,
-        limit,
-        totalVoters,
-        totalPages: Math.ceil(totalVoters / limit),
-      },
-    });
+    res.status(200).json({ message: "All Voters for this Admin...", Success: true, getDetails });
   } catch (error) {
     console.log(error);
-    res.status(400).json({
-      message: "Something Went Wrong...",
-      Success: false,
-    });
+    res.status(400).json({ message: "Something Went Wrong...", Success: false });
   }
 };
-
-export const searchVoter = async (req, res) => {
-  try {
-    const adminId = req.admin._id; // Get admin ID from auth middleware
-    const { query, page = 1, limit = 10 } = req.query;
-    
-    const searchQuery = {
-      $and: [
-        { admin: adminId }, // Add admin filter
-        {
-          $or: [
-            { name: { $regex: query, $options: 'i' } },
-            { voterId: { $regex: query, $options: 'i' } },
-            { 'location.city': { $regex: query, $options: 'i' } },
-            { 'location.state': { $regex: query, $options: 'i' } },
-            { email: { $regex: query, $options: 'i' } }
-          ]
-        }
-      ]
-    };
-
-    const voters = await VoterData.find(searchQuery)
-      .skip((page - 1) * limit)
-      .limit(limit);
-      
-    const total = await VoterData.countDocuments(searchQuery);
-
-    res.json({
-      Success: true,
-      data: voters,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        totalVoters: total,
-        totalPages: Math.ceil(total / limit)
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ Success: false, message: error.message });
-  }
-};
-
 
 export const totalRegisterVoter = async (req, res) => {
   try {

@@ -50,7 +50,7 @@ const VoteSuccess = () => {
         <CardFooter className="flex flex-col space-y-4">
           <div className="flex flex-col gap-4 w-full">
             <Button asChild>
-              <a href="/pulic/result">View Election Results</a>
+              <a href="/results">View Election Results</a>
             </Button>
             <Button variant="outline" asChild>
               <a href="/">Return to Home</a>

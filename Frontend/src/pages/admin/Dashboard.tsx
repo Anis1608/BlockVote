@@ -96,10 +96,6 @@ const Dashboard = () => {
   const axios = useAxios();
   const navigate = useNavigate();
 
-  const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
-
-  console.log(Backend_URL);
-
   const hoursLabels = [
     "12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM",
     "8 AM", "9 AM", "10 AM", "11 AM", "12 PM", "1 PM", "2 PM", "3 PM",
@@ -129,12 +125,12 @@ const Dashboard = () => {
 
     // Fetch data in parallel
     axios
-    .get(`${Backend_URL}/api/register-votercount`, headers)
+    .get("https://blockvote.site/api/register-votercount", headers)
     .then((res) => setTotalVoters(res.data.totalVoter))
     .catch((err) => handleAuthError(err));
 
     axios
-    .get(`${Backend_URL}/api/get-current-phase`, headers)
+    .get("https://blockvote.site/api/get-current-phase", headers)
     .then((res) => {
       setCurrentPhase(res.data.currentPhase);
       setIsLoading(false);
@@ -142,12 +138,12 @@ const Dashboard = () => {
     .catch((err) => handleAuthError(err));
 
   axios
-    .get(`${Backend_URL}/api/total-votes`, headers)
+    .get("https://blockvote.site/api/total-votes", headers)
     .then((res) => setTotalVotes(res.data.totalVotes))
     .catch((err) => handleAuthError(err));
 
   axios
-    .get(`${Backend_URL}/api/total-candidate`, headers)
+    .get("https://blockvote.site/api/total-candidate", headers)
     .then((res) => setTotalCandidates(res.data.totalCandidates))
     .catch((err) => handleAuthError(err));
 }, [navigate, axios]);
@@ -163,7 +159,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    axios.get(`${Backend_URL}/api/hourly?filter=${filter}` , {
+    axios.get(`https://blockvote.site/api/hourly?filter=${filter}` , {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
         "device-id": localStorage.getItem("deviceId"),
@@ -182,7 +178,7 @@ const Dashboard = () => {
   }, [filter]);
 
   useEffect(() => {
-    axios.get(`${Backend_URL}/api/activity-log`, {
+    axios.get("https://blockvote.site/api/activity-log", {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
         "device-id": localStorage.getItem("deviceId"),

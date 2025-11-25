@@ -25,8 +25,6 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
-
   useEffect(() => {
     // Check if user is already logged in
     const token = localStorage.getItem("adminToken");
@@ -44,8 +42,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      console.log(Backend_URL);
-      const response = await fetch(`${Backend_URL}/api/admin-login`, {
+      const response = await fetch("https://blockvote.site/api/admin-login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -84,7 +81,7 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${Backend_URL}/api/verify-login-otp`, {
+      const response = await fetch("https://blockvote.site/api/verify-login-otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -26,13 +26,13 @@ export const castVote = async (req, res) => {
             Success: false,
         });
     }
-    // console.log("admin data:" , adminId)
+    console.log("admin data:" , adminId)
     const server = new StellarSdk.Server(STELLAR_SERVER);
     
     try {
-        const voter = await Voter.findOne({ voterId , admin:req.admin._id });
+        const voter = await Voter.findOne({ voterId });
         // console.log(voter)
-        const candidate = await Candidate.findOne({ candidateId ,  admin:req.admin._id });
+        const candidate = await Candidate.findOne({ candidateId });
         if (!voter || !candidate) {
             console.log("Voter or Candidate Not Found!");
             return res.status(404).json({Success:false  , error: "Voter or Candidate Not Found!" });
@@ -47,10 +47,13 @@ export const castVote = async (req, res) => {
         const account = await server.loadAccount(requestedAdminData.walletAddress);
         const sequence = account.sequence;
 
+        // Encyrpt Voter ID & Candidate ID
+        const EncyrptedvoterId = bcrypt.hashSync(voterId,  10);
+
         //Create Stellar Transaction
         const transaction = new StellarSdk.TransactionBuilder(account, {
             fee: StellarSdk.BASE_FEE,
-            networkPassphrase: StellarSdk.Networks.TESTNET,
+            networkPassphrase: StellarSdk.Networks.TESTNET
         })
         .addOperation(StellarSdk.Operation.payment({
             destination: requestedAdminData.walletAddress,
@@ -67,10 +70,10 @@ export const castVote = async (req, res) => {
         const response = await server.submitTransaction(transaction);
 
         if (response.successful) {
-            // console.log("Vote Successfully Recorded on Stellar!");
+            console.log("Vote Successfully Recorded on Stellar!");
             await Voter.findOneAndUpdate(
-                { voterId  ,admin:req.admin._id },
-                { $set: { voteCast: true} }, 
+                { voterId },
+                { $set: { voteCast: true } }, 
             );
             await logActivity(req, "cast_vote", "success", {transactionHash: response.hash});
             return res.status(200).json({ message: "Vote recorded!", Success:true ,  hash: response.hash });
@@ -88,32 +91,16 @@ export const castVote = async (req, res) => {
 export const voter_login = async (req, res) => {
     try {
         const { voterId } = req.body;
-        const adminId = req.admin?._id;
-
         if (!voterId) {
             return res.status(400).json({ message: "Voter ID is required", Success: false });
         }
-
-        const voter = await Voter.findOne({ voterId, admin: adminId });
-
+        const voter = await Voter.findOne({ voterId });
         if (!voter) {
-            return res.status(404).json({ message: "Voter not found under this admin", Success: false });
+            return res.status(404).json({ message: "Voter not found", Success: false });
         }
-        if (voter.voteCast === true) {
-            return res.status(403).json({
-                message: "Voter has already cast their vote",
-                Success: false,
-            });
-        }
-
-        res.status(200).json({
-            message: "Login successful",
-            Success: true,
-            voter,
-        });
-
+        res.status(200).json({ message: "Login successful", Success: true,  voter });    
     } catch (error) {
         console.error("Error in voter_login:", error);
         res.status(500).json({ message: "Internal Server Error", Success: false });
     }
-};
+}

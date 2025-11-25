@@ -13,8 +13,6 @@ const Home = () => {
   const handleButtonClick = () => {
   const token = localStorage.getItem("adminToken");
   const deviceId = localStorage.getItem("deviceId");
-
-  const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
     if (!token || !deviceId) {
       toast({
         title: "Admin Login Required",
@@ -151,8 +149,8 @@ const Home = () => {
               Access the platform as a voter or administrator.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button onClick={handleButtonClick} size="lg" asChild>
-                <p>Voter Access</p>
+              <Button size="lg" asChild>
+                <a href="/voter/login">Voter Access</a>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <a href="/login">Admin Login</a>

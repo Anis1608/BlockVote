@@ -1,6 +1,6 @@
 import express from "express";
 import { isadmin } from "../middleware/checkisadmin.js";
-import { Register,  verifyRegisterOTP , getalladminsID  ,verifyLoginOTP,AdminLogin , Register_Voter  , getvoterDetails , totalRegisterVoter , getAllLoggedInDevices , getDetails, searchVoter} from "../controllers/adminController.js";
+import { Register,  verifyRegisterOTP , getalladminsID  ,verifyLoginOTP,AdminLogin , Register_Voter  , getvoterDetails , totalRegisterVoter , getAllLoggedInDevices , getDetails} from "../controllers/adminController.js";
 
 const adminRoutes = express.Router()
 
@@ -11,7 +11,6 @@ adminRoutes.route("/verify-login-otp").post(verifyLoginOTP)
 adminRoutes.route("/register-voter").post( isadmin , Register_Voter)
 adminRoutes.route("/admins").get(getalladminsID)
 adminRoutes.route("/allvoter").get( isadmin , getvoterDetails)
-adminRoutes.route("/search").get(isadmin,searchVoter)
 adminRoutes.route("/register-votercount").get(isadmin , totalRegisterVoter)
 adminRoutes.route("/get-active-devices").get(isadmin , getAllLoggedInDevices)
 adminRoutes.route("/get-details").get( isadmin ,getDetails)

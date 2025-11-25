@@ -14,8 +14,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 const CandidateManagement = () => {
-
-  const Backend_URL = import.meta.env.VITE_BACKEND_BASE_URL;
   const [candidates, setCandidates] = useState([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -52,7 +50,7 @@ const CandidateManagement = () => {
 
   const fetchCandidates = async () => {
     try {
-      const res = await axios.get(`${Backend_URL}/api/all-candidate`, {
+      const res = await axios.get("https://blockvote.site/api/all-candidate", {
         headers: {
           Authorization: `Bearer ${token}`,
           "device-id": localStorage.getItem("deviceId"),
@@ -152,7 +150,7 @@ const CandidateManagement = () => {
       };
 
       const res = await axios.post(
-        `${Backend_URL}/api/register-candidate`,
+        "https://blockvote.site/api/register-candidate",
         payload,
         {
           headers: {
