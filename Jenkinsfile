@@ -11,8 +11,8 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/Anis1608/BlockVote.git'
+                git branch: 'master',
+                    url: 'https://github.com/Anis1608/BlockVote-Phase-I.git'
             }
         }
 
